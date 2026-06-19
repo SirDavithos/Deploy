@@ -1,0 +1,10 @@
+node_modules/
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+storage/app/public/temp/*
+.env
+.git
+.gitignore
+README.md
