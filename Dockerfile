@@ -1,17 +1,30 @@
-# Etapa 1: Construir assets de Vue con Node
-FROM node:20-alpine AS node-builder
+# Etapa 1: Construir assets de Vue y descargar dependencias PHP
+FROM node:20-alpine AS builder
 WORKDIR /app
+
+# Instalar Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Copiar archivos de Composer y instalar dependencias (solo producción, sin scripts)
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist
+
+# Instalar dependencias de Node
 COPY package.json package-lock.json* ./
 RUN npm ci --legacy-peer-deps
+
+# Copiar el resto del código fuente necesario para Vite
 COPY resources/ resources/
 COPY public/ public/
 COPY vite.config.js ./
+
+# Ejecutar la construcción de Vite
 RUN npm run build
 
 # Etapa 2: Imagen final con PHP y Apache
 FROM php:8.2-apache
 
-# Instalar extensiones necesarias para Laravel y MySQL
+# Instalar extensiones de PHP y habilitar rewrite
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
@@ -27,8 +40,10 @@ RUN apt-get update && apt-get install -y \
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Configurar Apache para servir desde /var/www/html/public
+# Copiar toda la aplicación
 COPY . /var/www/html
+
+# Copiar el .env.example y reemplazar placeholders con variables de entorno
 COPY .env.example /var/www/html/.env
 RUN sed -i 's/DB_HOST=127.0.0.1/DB_HOST=${DB_HOST}/g' /var/www/html/.env \
     && sed -i 's/DB_DATABASE=laravel/DB_DATABASE=${DB_DATABASE}/g' /var/www/html/.env \
@@ -37,22 +52,22 @@ RUN sed -i 's/DB_HOST=127.0.0.1/DB_HOST=${DB_HOST}/g' /var/www/html/.env \
     && sed -i 's/APP_KEY=/APP_KEY=${APP_KEY}/g' /var/www/html/.env \
     && sed -i 's|APP_URL=http://localhost|APP_URL=${APP_URL}|g' /var/www/html/.env
 
-# Copiar los assets compilados de Vue desde la etapa anterior
-COPY --from=node-builder /app/public/build /var/www/html/public/build
+# Copiar los assets compilados desde la etapa builder
+COPY --from=builder /app/public/build /var/www/html/public/build
 
-# Configurar Apache: DocumentRoot a la carpeta public de Laravel
+# Configurar Apache para servir desde la carpeta public de Laravel
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
     && echo '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n</Directory>' >> /etc/apache2/apache2.conf
 
-# Dar permisos a las carpetas de Laravel
+# Dar permisos a storage y bootstrap/cache
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Instalar dependencias de PHP (producción)
+# Instalar dependencias de Composer (producción)
 WORKDIR /var/www/html
 RUN composer install --optimize-autoloader --no-dev --no-interaction
 
-# Generar la clave de aplicación y el enlace simbólico
+# Generar clave, enlace simbólico y optimizar
 RUN php artisan key:generate --force \
     && php artisan storage:link --force \
     && php artisan optimize
