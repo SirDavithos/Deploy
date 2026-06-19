@@ -1,5 +1,6 @@
 # Stage 1: PHP with Composer to generate the vendor folder
 FROM php:8.2-cli AS php-deps
+RUN apt-get update && apt-get install -y zip unzip libzip-dev && docker-php-ext-install zip
 WORKDIR /app
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY composer.json composer.lock ./
