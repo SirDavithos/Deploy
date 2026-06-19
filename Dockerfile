@@ -1,30 +1,25 @@
-# Etapa 1: Construir assets de Vue y descargar dependencias PHP
-FROM node:20-alpine AS builder
+# Stage 1: PHP with Composer to generate the vendor folder
+FROM php:8.2-cli AS php-deps
 WORKDIR /app
-
-# Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Copiar archivos de Composer y instalar dependencias (solo producción, sin scripts)
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist
 
-# Instalar dependencias de Node
+# Stage 2: Node with vendor (from Stage 1) to build frontend
+FROM node:20-alpine AS node-build
+WORKDIR /app
+COPY --from=php-deps /app/vendor /app/vendor
 COPY package.json package-lock.json* ./
 RUN npm ci --legacy-peer-deps
-
-# Copiar el resto del código fuente necesario para Vite
 COPY resources/ resources/
 COPY public/ public/
 COPY vite.config.js ./
-
-# Ejecutar la construcción de Vite
 RUN npm run build
 
-# Etapa 2: Imagen final con PHP y Apache
-FROM php:8.2-apache
+# Stage 3: Final production image with Apache
+FROM php:8.2-apache AS production
 
-# Instalar extensiones de PHP y habilitar rewrite
+# Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
@@ -37,13 +32,19 @@ RUN apt-get update && apt-get install -y \
     && a2enmod rewrite \
     && apt-get clean
 
-# Instalar Composer
+# Copy Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copiar toda la aplicación
+# Copy application files
 COPY . /var/www/html
 
-# Copiar el .env.example y reemplazar placeholders con variables de entorno
+# Copy vendor from the php-deps stage
+COPY --from=php-deps /app/vendor /var/www/html/vendor
+
+# Copy built assets from the node-build stage
+COPY --from=node-build /app/public/build /var/www/html/public/build
+
+# Setup .env with placeholder replacement
 COPY .env.example /var/www/html/.env
 RUN sed -i 's/DB_HOST=127.0.0.1/DB_HOST=${DB_HOST}/g' /var/www/html/.env \
     && sed -i 's/DB_DATABASE=laravel/DB_DATABASE=${DB_DATABASE}/g' /var/www/html/.env \
@@ -52,22 +53,15 @@ RUN sed -i 's/DB_HOST=127.0.0.1/DB_HOST=${DB_HOST}/g' /var/www/html/.env \
     && sed -i 's/APP_KEY=/APP_KEY=${APP_KEY}/g' /var/www/html/.env \
     && sed -i 's|APP_URL=http://localhost|APP_URL=${APP_URL}|g' /var/www/html/.env
 
-# Copiar los assets compilados desde la etapa builder
-COPY --from=builder /app/public/build /var/www/html/public/build
-
-# Configurar Apache para servir desde la carpeta public de Laravel
+# Configure Apache to serve from /public
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
     && echo '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n</Directory>' >> /etc/apache2/apache2.conf
 
-# Dar permisos a storage y bootstrap/cache
+# Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Instalar dependencias de Composer (producción)
-WORKDIR /var/www/html
-RUN composer install --optimize-autoloader --no-dev --no-interaction
-
-# Generar clave, enlace simbólico y optimizar
+# Generate app key, storage link, and optimize
 RUN php artisan key:generate --force \
     && php artisan storage:link --force \
     && php artisan optimize
