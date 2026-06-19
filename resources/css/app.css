@@ -1,0 +1,36 @@
+/* resources/css/app.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Clases personalizadas para evitar repetición */
+@layer components {
+    .btn-primary {
+        @apply bg-red-600 text-white font-bold px-4 py-2 rounded-lg text-xs hover:bg-red-500 shadow-sm transition-colors;
+    }
+    .btn-dark {
+        @apply bg-gray-900 text-white dark:bg-white dark:text-gray-900 font-bold px-4 py-2 rounded-lg text-xs hover:opacity-95 transition-opacity;
+    }
+    .btn-outline {
+        @apply text-xs font-bold border border-gray-300 dark:border-gray-700 px-3 py-1.5 rounded bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors;
+    }
+    .card {
+        @apply bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl dark:bg-gray-900 dark:ring-gray-800 p-6;
+    }
+    .input-field {
+        @apply rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 text-xs w-full;
+    }
+    .tab-active {
+        @apply bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400;
+    }
+    .tab-inactive {
+        @apply text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-900/50 dark:hover:text-white;
+    }
+    .badge-pending {
+        @apply bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400;
+    }
+    .badge-success {
+        @apply bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-400;
+    }
+}
