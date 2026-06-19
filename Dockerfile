@@ -1,5 +1,5 @@
 # Etapa 1: Construir assets de Vue con Node
-FROM node:18-alpine AS node-builder
+FROM node:20-alpine AS node-builder
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci --legacy-peer-deps
