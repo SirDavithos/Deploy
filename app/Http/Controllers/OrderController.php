@@ -3,17 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\Cart;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Barryvdh\DomPDF\Facade\Pdf;
-
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class OrderController extends Controller
 {
-
-    // Vista previa del checkout (direcciones y NIT)
     public function checkout()
     {
         $user = Auth::user();
@@ -23,7 +20,6 @@ class OrderController extends Controller
             return redirect()->route('cart.index')->with('error', 'Tu carrito está vacío.');
         }
 
-        // Agrupar por tienda
         $shops = $cartItems->groupBy(fn($item) => $item->product->shop_id);
 
         return Inertia::render('Checkout/Index', [
@@ -34,7 +30,6 @@ class OrderController extends Controller
         ]);
     }
 
-    // Crear el pedido
     public function store(Request $request)
     {
         $user = Auth::user();
@@ -49,7 +44,6 @@ class OrderController extends Controller
             'tax_data_id' => 'required|exists:user_tax_data,id',
         ]);
 
-        // Agrupar por tienda y crear un pedido por tienda
         $grouped = $cartItems->groupBy(fn($item) => $item->product->shop_id);
 
         foreach ($grouped as $shopId => $items) {
@@ -69,51 +63,42 @@ class OrderController extends Controller
                     'quantity'   => $item->quantity,
                     'price'      => $item->product->price,
                 ]);
-                // Reducir stock
                 $item->product->decrement('stock', $item->quantity);
             }
         }
 
-        // Vaciar carrito
         $user->cartItems()->delete();
 
         return redirect()->route('dashboard')->with('status', 'Pedido realizado con éxito.');
     }
 
-    // Historial del comprador
     public function index(Request $request)
     {
         $query = Auth::user()->orders()
-            ->with('shop', 'items.product', 'taxData');
+            ->with('shop.taxData', 'items.product', 'taxData');
 
-        // Filtro por búsqueda (ID, tienda, producto)
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('id', 'like', "%{$search}%")
-                ->orWhereHas('shop', function($q2) use ($search) {
-                    $q2->where('name', 'like', "%{$search}%");
-                })
-                ->orWhereHas('items.product', function($q2) use ($search) {
-                    $q2->where('title', 'like', "%{$search}%");
-                });
+                  ->orWhereHas('shop', function($q2) use ($search) {
+                      $q2->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('items.product', function($q2) use ($search) {
+                      $q2->where('title', 'like', "%{$search}%");
+                  });
             });
         }
 
-        // Filtro por estado
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-
-        // Filtro por fecha
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
         }
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-
-        // Filtro por monto
         if ($request->filled('min_total')) {
             $query->where('total', '>=', $request->min_total);
         }
@@ -129,11 +114,9 @@ class OrderController extends Controller
         ]);
     }
 
-    // Actualizar estado del pedido (para el artesano)
     public function update(Request $request, Order $order)
     {
-        // Verificar que la tienda pertenece al usuario logueado
-        if ($order->shop->user_id !== Auth::id()) {
+        if ($order->shop->user_id !== Auth::id() && !Auth::user()->hasRole('admin')) {
             abort(403);
         }
 
@@ -142,16 +125,32 @@ class OrderController extends Controller
 
         return back()->with('status', 'Estado del pedido actualizado.');
     }
-public function invoice(Order $order)
-{
-    if ($order->user_id !== Auth::id() && !Auth::user()->hasRole('admin')) {
-        abort(403);
+
+
+
+    public function invoice(Order $order)
+    {
+        if ($order->user_id !== Auth::id() && !Auth::user()->hasRole('admin')) {
+            abort(403);
+        }
+
+        $order->load('items.product', 'shop.taxData', 'taxData', 'address', 'buyer');
+
+        // Datos para el QR (formato SIN)
+        $qrData = [
+            'tipo'       => $order->shop->taxData->first()?->tax_regimen === 'Régimen General' ? 'FACTURA' : 'RECIBO',
+            'pedido'     => $order->id,
+            'fecha'      => $order->created_at->format('Y-m-d H:i:s'),
+            'nit_emisor' => $order->shop->taxData->first()?->nit_or_ci ?? 'N/A',
+            'razon_social' => $order->shop->taxData->first()?->business_name ?? 'N/A',
+            'comprador'  => $order->buyer->first_name . ' ' . $order->buyer->paternal_last_name,
+            'total'      => number_format($order->total, 2) . ' BOB',
+        ];
+
+        $qr = QrCode::size(120)->generate(json_encode($qrData));
+
+        $pdf = Pdf::loadView('pdf.invoice', compact('order', 'qr'));
+
+        return $pdf->download('documento-' . $order->id . '.pdf');
     }
-
-    $order->load('items.product', 'shop', 'taxData', 'address', 'buyer');
-
-    $pdf = Pdf::loadView('pdf.invoice', compact('order'));
-
-    return $pdf->download('factura-' . $order->id . '.pdf');
-}
 }

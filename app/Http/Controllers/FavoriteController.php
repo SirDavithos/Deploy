@@ -10,7 +10,7 @@ use Inertia\Inertia;
 
 class FavoriteController extends Controller
 {
-    // Alternar favorito de tienda
+    // Marcar/desmarcar tienda como favorita
     public function toggleShop(Request $request, Shop $shop)
     {
         $user = Auth::user();
@@ -25,7 +25,7 @@ class FavoriteController extends Controller
         return back()->with('status', $isFav ? 'Tienda eliminada de favoritos' : 'Tienda añadida a favoritos');
     }
 
-    // Alternar favorito de producto
+    // Marcar/desmarcar producto como favorito
     public function toggleProduct(Request $request, Product $product)
     {
         $user = Auth::user();
@@ -40,16 +40,50 @@ class FavoriteController extends Controller
         return back()->with('status', $isFav ? 'Producto eliminado de favoritos' : 'Producto añadido a favoritos');
     }
 
-    // Listar favoritos del usuario
-    public function index()
+    // Mostrar página de favoritos
+    public function index(Request $request)
     {
         $user = Auth::user();
-        $shops = $user->favoriteShops()->with('owner')->get();
-        $products = $user->favoriteProducts()->with(['shop', 'category'])->get();
+
+        // Tiendas favoritas
+        $favoriteShops = $user->favoriteShops()->with('owner')->get();
+
+        // Tiendas seguidas
+        $followedShops = $user->followedShops()->with('owner')->get();
+
+        // Productos favoritos con filtros
+        $query = $user->favoriteProducts()->with('shop', 'category');
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where('title', 'like', "%{$search}%");
+        }
+
+        $sort = $request->input('sort', 'newest');
+        switch ($sort) {
+            case 'price_asc':
+                $query->orderBy('price', 'asc');
+                break;
+            case 'price_desc':
+                $query->orderBy('price', 'desc');
+                break;
+            case 'alpha_asc':
+                $query->orderBy('title', 'asc');
+                break;
+            case 'alpha_desc':
+                $query->orderBy('title', 'desc');
+                break;
+            default:
+                $query->latest();
+        }
+
+        $favoriteProducts = $query->get();
 
         return Inertia::render('Favorites/Index', [
-            'favoriteShops'    => $shops,
-            'favoriteProducts' => $products,
+            'favoriteShops'    => $favoriteShops,
+            'favoriteProducts' => $favoriteProducts,
+            'followedShops'    => $followedShops,
+            'filters'          => $request->only(['search', 'sort']),
         ]);
     }
 }

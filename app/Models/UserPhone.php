@@ -14,6 +14,7 @@ class UserPhone extends Model
         'user_id',
         'phone_number',
         'type',
+        'is_default',   // ← nuevo campo
     ];
 
     /**

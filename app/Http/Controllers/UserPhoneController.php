@@ -10,14 +10,20 @@ class UserPhoneController extends Controller
 {
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'phone_number' => 'required|string|max:20',
             'type'         => 'required|string|max:50',
+            'is_default'   => 'boolean',
         ]);
 
-        Auth::user()->phones()->create($request->only('phone_number', 'type'));
+        // Si se marca como predeterminado, desmarcar los demás
+        if ($request->boolean('is_default')) {
+            Auth::user()->phones()->update(['is_default' => false]);
+        }
 
-        return back()->with('status', 'Teléfono agregado.');
+        Auth::user()->phones()->create($validated);
+
+        return back()->with('status', 'Teléfono agregado correctamente.');
     }
 
     public function destroy(UserPhone $phone)
@@ -40,10 +46,16 @@ class UserPhoneController extends Controller
         $validated = $request->validate([
             'phone_number' => 'required|string|max:20',
             'type'         => 'required|string|max:50',
+            'is_default'   => 'boolean',
         ]);
+
+        // Si se marca como predeterminado, desmarcar los demás
+        if ($request->boolean('is_default')) {
+            Auth::user()->phones()->where('id', '!=', $phone->id)->update(['is_default' => false]);
+        }
 
         $phone->update($validated);
 
-        return back()->with('status', 'Teléfono actualizado.');
+        return back()->with('status', 'Teléfono actualizado correctamente.');
     }
 }

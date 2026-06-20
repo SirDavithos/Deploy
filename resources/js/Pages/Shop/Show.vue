@@ -44,15 +44,10 @@ const totalReviews = computed(() => {
 
 // ==================== EDITAR TIENDA ====================
 const editForm = useForm({
-    name: props.shop.name,
-    description: props.shop.description || '',
-    avatar: null,
-    banner: null,
-    // Fiscal
-    is_tax_registered: props.shop.is_tax_registered || false,
+    // ... otros campos ...
+    tax_regimen: props.shop.tax_data?.[0]?.tax_regimen || '',
     shop_nit_or_ci: props.shop.tax_data?.[0]?.nit_or_ci || '',
     shop_business_name: props.shop.tax_data?.[0]?.business_name || '',
-    shop_tax_regimen: props.shop.tax_data?.[0]?.tax_regimen || '',
 });
 
 const avatarPreview = ref(props.shop.avatar ? `/storage/${props.shop.avatar}` : null);
@@ -266,12 +261,16 @@ const updateOrderStatus = (orderId, newStatus) => {
                         <div>
                             <h4 class="text-xs font-bold text-gray-500 uppercase mb-3">Información fiscal</h4>
                             <div class="space-y-4">
-                                <label class="flex items-center gap-2 text-xs font-bold cursor-pointer">
-                                    <input v-model="editForm.is_tax_registered" type="checkbox" class="rounded border-gray-300 text-red-600 focus:ring-red-500" />
-                                    <span>Tienda registrada en impuestos (emite factura)</span>
-                                </label>
+                                <div>
+                                    <label class="text-xs font-bold block mb-1">Régimen fiscal</label>
+                                    <select v-model="editForm.tax_regimen" class="input-field">
+                                        <option value="">No registrado (emitirá recibo simple)</option>
+                                        <option value="Régimen General">Régimen General (emite factura)</option>
+                                        <option value="Régimen Tributario Simplificado">RTS (emite recibo con NIT)</option>
+                                    </select>
+                                </div>
 
-                                <div v-if="editForm.is_tax_registered" class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                                <div v-if="editForm.tax_regimen" class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
                                     <div>
                                         <label class="text-xs font-bold block mb-1">NIT *</label>
                                         <input v-model="editForm.shop_nit_or_ci" type="text" class="input-field" required />
@@ -281,10 +280,6 @@ const updateOrderStatus = (orderId, newStatus) => {
                                         <label class="text-xs font-bold block mb-1">Razón Social *</label>
                                         <input v-model="editForm.shop_business_name" type="text" class="input-field" required />
                                         <p v-if="editForm.errors.shop_business_name" class="input-error">{{ editForm.errors.shop_business_name }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-xs font-bold block mb-1">Régimen Tributario</label>
-                                        <input v-model="editForm.shop_tax_regimen" type="text" class="input-field" />
                                     </div>
                                 </div>
                             </div>

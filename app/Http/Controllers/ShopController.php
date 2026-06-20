@@ -16,14 +16,12 @@ class ShopController extends Controller
         if (Auth::user()->shop) {
             return redirect()->route('shop.show', Auth::user()->shop->id);
         }
-
         return Inertia::render('Shop/Create');
     }
 
     public function store(Request $request)
     {
         $user = Auth::user();
-
         if ($user->shop) {
             return back()->with('error', 'Ya tienes una tienda registrada.');
         }
@@ -41,31 +39,34 @@ class ShopController extends Controller
             'zone'                => 'required|string|max:255',
             'street_address'      => 'required|string|max:255',
             'reference'           => 'nullable|string|max:255',
-            'is_tax_registered'   => 'boolean',
+            // Fiscal
+            'tax_regimen'         => 'nullable|in:Régimen General,Régimen Tributario Simplificado',
             'shop_nit_or_ci'      => 'nullable|string|max:50',
             'shop_business_name'  => 'nullable|string|max:255',
-            'shop_tax_regimen'    => 'nullable|string|max:100',
+            // GPS
+            'latitude'            => 'nullable|numeric',
+            'longitude'           => 'nullable|numeric',
         ]);
 
-        if ($request->boolean('is_tax_registered')) {
+        // Validación condicional si se eligió un régimen
+        if ($request->filled('tax_regimen')) {
             $request->validate([
                 'shop_nit_or_ci'      => 'required|string|max:50',
                 'shop_business_name'  => 'required|string|max:255',
             ]);
         }
 
+        // Subir archivos
         if ($request->hasFile('avatar')) {
             $validated['avatar'] = $request->file('avatar')->store('shops/avatars', 'public');
         } else {
             $validated['avatar'] = null;
         }
-
         if ($request->hasFile('banner')) {
             $validated['banner'] = $request->file('banner')->store('shops/banners', 'public');
         } else {
             $validated['banner'] = null;
         }
-
         $imagePaths = [];
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
@@ -73,6 +74,7 @@ class ShopController extends Controller
             }
         }
 
+        // Slug
         $slug = Str::slug($validated['name']);
         $originalSlug = $slug;
         $counter = 1;
@@ -80,6 +82,7 @@ class ShopController extends Controller
             $slug = $originalSlug . '-' . $counter++;
         }
 
+        // Crear tienda
         $shop = $user->shop()->create([
             'name'               => $validated['name'],
             'slug'               => $slug,
@@ -88,7 +91,7 @@ class ShopController extends Controller
             'banner'             => $validated['banner'],
             'images'             => $imagePaths,
             'status'             => 'pending',
-            'is_tax_registered'  => $request->boolean('is_tax_registered'),
+            'is_tax_registered'  => $request->filled('tax_regimen'), // true si eligió régimen
         ]);
 
         $shop->phones()->create([
@@ -102,13 +105,16 @@ class ShopController extends Controller
             'street_address' => $validated['street_address'],
             'reference'      => $validated['reference'] ?? null,
             'is_default'     => true,
+            'latitude'       => $validated['latitude'] ?? null,
+            'longitude'      => $validated['longitude'] ?? null,
         ]);
 
+        // Datos fiscales
         if ($shop->is_tax_registered) {
             $shop->taxData()->create([
                 'nit_or_ci'      => $validated['shop_nit_or_ci'],
                 'business_name'  => $validated['shop_business_name'],
-                'tax_regimen'    => $validated['shop_tax_regimen'] ?? null,
+                'tax_regimen'    => $validated['tax_regimen'],
                 'is_default'     => true,
             ]);
         }
@@ -124,13 +130,8 @@ class ShopController extends Controller
         }
 
         $shop->load([
-            'phones',
-            'addresses',
-            'owner',
-            'products',
-            'orders.items.product',
-            'orders.buyer',
-            'orders.taxData',
+            'phones', 'addresses', 'owner', 'products',
+            'orders.items.product', 'orders.buyer', 'orders.taxData',
             'taxData',
         ]);
 
@@ -147,36 +148,34 @@ class ShopController extends Controller
         }
 
         $validated = $request->validate([
-            'name'               => 'required|string|max:255',
-            'description'        => 'nullable|string',
-            'avatar'             => 'nullable|image|max:2048',
-            'banner'             => 'nullable|image|max:4096',
-            'is_tax_registered'  => 'boolean',
-            'shop_nit_or_ci'     => 'nullable|string|max:50',
-            'shop_business_name' => 'nullable|string|max:255',
-            'shop_tax_regimen'   => 'nullable|string|max:100',
+            'name'                => 'required|string|max:255',
+            'description'         => 'nullable|string',
+            'avatar'              => 'nullable|image|max:2048',
+            'banner'              => 'nullable|image|max:4096',
+            'tax_regimen'         => 'nullable|in:Régimen General,Régimen Tributario Simplificado',
+            'shop_nit_or_ci'      => 'nullable|string|max:50',
+            'shop_business_name'  => 'nullable|string|max:255',
+            'latitude'            => 'nullable|numeric',
+            'longitude'           => 'nullable|numeric',
         ]);
 
-        if ($request->boolean('is_tax_registered')) {
+        // Validación condicional
+        if ($request->filled('tax_regimen')) {
             $request->validate([
                 'shop_nit_or_ci'      => 'required|string|max:50',
                 'shop_business_name'  => 'required|string|max:255',
             ]);
         }
 
+        // Procesar archivos
         if ($request->hasFile('avatar')) {
-            if ($shop->avatar) {
-                Storage::disk('public')->delete($shop->avatar);
-            }
+            if ($shop->avatar) Storage::disk('public')->delete($shop->avatar);
             $validated['avatar'] = $request->file('avatar')->store('shops/avatars', 'public');
         } else {
             unset($validated['avatar']);
         }
-
         if ($request->hasFile('banner')) {
-            if ($shop->banner) {
-                Storage::disk('public')->delete($shop->banner);
-            }
+            if ($shop->banner) Storage::disk('public')->delete($shop->banner);
             $validated['banner'] = $request->file('banner')->store('shops/banners', 'public');
         } else {
             unset($validated['banner']);
@@ -185,16 +184,26 @@ class ShopController extends Controller
         $shop->update([
             'name'               => $validated['name'],
             'description'        => $validated['description'] ?? $shop->description,
-            'is_tax_registered'  => $request->boolean('is_tax_registered'),
+            'is_tax_registered'  => $request->filled('tax_regimen'),
         ]);
 
+        // Actualizar coordenadas
+        $address = $shop->addresses()->where('is_default', true)->first();
+        if ($address && isset($validated['latitude'])) {
+            $address->update([
+                'latitude'  => $validated['latitude'],
+                'longitude' => $validated['longitude'],
+            ]);
+        }
+
+        // Gestionar datos fiscales
         if ($shop->is_tax_registered) {
             $shop->taxData()->updateOrCreate(
                 ['is_default' => true],
                 [
                     'nit_or_ci'     => $validated['shop_nit_or_ci'],
                     'business_name' => $validated['shop_business_name'],
-                    'tax_regimen'   => $validated['shop_tax_regimen'] ?? null,
+                    'tax_regimen'   => $validated['tax_regimen'],
                 ]
             );
         } else {
@@ -204,69 +213,47 @@ class ShopController extends Controller
         return back()->with('status', 'Tienda actualizada correctamente.');
     }
 
-    /**
-     * Vista pública de la tienda (compradores).
-     */
     public function view(Shop $shop)
     {
         $shop->load([
-            'owner',
-            'phones',
-            'addresses',
-            'taxData',
+            'owner', 'phones', 'addresses', 'taxData',
             'products' => function ($query) {
                 $query->where('status', 'published')
                     ->withAvg('reviews', 'rating')
                     ->withCount('reviews')
                     ->latest();
             },
-            'products.reviews' => function ($query) {
-                $query->latest()->with('user');
-            },
-            'orders' => function ($query) {
-                $query->where('status', 'delivered');
-            },
+            'products.reviews' => fn($q) => $q->latest()->with('user'),
+            'orders' => fn($q) => $q->where('status', 'delivered'),
         ]);
 
-        // Calcular promedio y conteo general de la tienda
         $allReviews = $shop->products->flatMap->reviews;
         $shop->setAttribute('products_avg_rating', $allReviews->avg('rating') ?? 0);
         $shop->setAttribute('products_reviews_count', $allReviews->count());
         $shop->setAttribute('sales_count', $shop->orders->count());
         $shop->setAttribute('all_reviews', $allReviews);
 
-        // Determinar si el usuario actual sigue esta tienda o es favorita
         $user = Auth::user();
         $shop->setAttribute('is_followed_by_user', $user ? $user->followedShops()->where('shop_id', $shop->id)->exists() : false);
         $shop->setAttribute('is_favorited', $user ? $user->favoriteShops()->where('shop_id', $shop->id)->exists() : false);
 
-        return Inertia::render('Shop/View', [
-            'shop' => $shop,
-        ]);
+        return Inertia::render('Shop/View', ['shop' => $shop]);
     }
 
     public function toggleFollow(Request $request, Shop $shop)
     {
         $user = $request->user();
-        if (!$user) {
-            return response()->json(['error' => 'No autenticado'], 401);
-        }
+        if (!$user) return response()->json(['error' => 'No autenticado'], 401);
 
-        $isFollowing = $user->followedShops()->where('shop_id', $shop->id)->exists();
-
-        if ($isFollowing) {
+        if ($user->followedShops()->where('shop_id', $shop->id)->exists()) {
             $user->followedShops()->detach($shop->id);
             $newState = false;
         } else {
             $user->followedShops()->attach($shop->id);
             $newState = true;
         }
-
         return back()->with('status', $newState ? 'Siguiendo tienda' : 'Dejaste de seguir');
     }
 
-    public function index()
-    {
-        abort(404);
-    }
+    public function index() { abort(404); }
 }

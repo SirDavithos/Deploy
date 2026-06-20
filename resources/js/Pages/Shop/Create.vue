@@ -218,29 +218,29 @@ const submit = () => {
                     </div>
                 </div>
 
-                <!-- ========== INFORMACIÓN FISCAL ========== -->
+                <!-- Información fiscal -->
                 <div>
-                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Información fiscal</h3>
+                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-3">Información fiscal</h4>
                     <div class="space-y-4">
-                        <label class="flex items-center gap-2 text-xs font-bold cursor-pointer">
-                            <input v-model="form.is_tax_registered" type="checkbox" class="rounded border-gray-300 text-red-600 focus:ring-red-500" />
-                            <span>Tienda registrada en impuestos (emite factura)</span>
-                        </label>
+                        <div>
+                            <label class="text-xs font-bold block mb-1">Régimen fiscal</label>
+                            <select v-model="editForm.tax_regimen" class="input-field">
+                                <option value="">No registrado (emitirá recibo simple)</option>
+                                <option value="Régimen General">Régimen General (emite factura)</option>
+                                <option value="Régimen Tributario Simplificado">RTS (emite recibo con NIT)</option>
+                            </select>
+                        </div>
 
-                        <div v-if="form.is_tax_registered" class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                        <div v-if="editForm.tax_regimen" class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
                             <div>
                                 <label class="text-xs font-bold block mb-1">NIT *</label>
-                                <input v-model="form.shop_nit_or_ci" type="text" placeholder="123456789012" class="input-field" required />
-                                <p v-if="form.errors.shop_nit_or_ci" class="input-error">{{ form.errors.shop_nit_or_ci }}</p>
+                                <input v-model="editForm.shop_nit_or_ci" type="text" class="input-field" required />
+                                <p v-if="editForm.errors.shop_nit_or_ci" class="input-error">{{ editForm.errors.shop_nit_or_ci }}</p>
                             </div>
                             <div>
                                 <label class="text-xs font-bold block mb-1">Razón Social *</label>
-                                <input v-model="form.shop_business_name" type="text" placeholder="Artesanías Condori S.R.L." class="input-field" required />
-                                <p v-if="form.errors.shop_business_name" class="input-error">{{ form.errors.shop_business_name }}</p>
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold block mb-1">Régimen Tributario</label>
-                                <input v-model="form.shop_tax_regimen" type="text" placeholder="Ej: Régimen General" class="input-field" />
+                                <input v-model="editForm.shop_business_name" type="text" class="input-field" required />
+                                <p v-if="editForm.errors.shop_business_name" class="input-error">{{ editForm.errors.shop_business_name }}</p>
                             </div>
                         </div>
                     </div>

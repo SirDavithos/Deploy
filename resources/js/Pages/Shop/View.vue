@@ -89,6 +89,19 @@ const toggleFollow = () => {
     });
 };
 
+// ==================== FAVORITO TIENDA (real) ====================
+const isShopFav = ref(props.shop.is_favorited || false);
+
+const toggleFavorite = () => {
+    const form = useForm({});
+    form.post(route('favorites.shop.toggle', props.shop.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            isShopFav.value = !isShopFav.value;
+        },
+    });
+};
+
 // ==================== WHATSAPP / DIRECCIÓN ====================
 const primaryPhone = computed(() => props.shop.phones?.[0]?.phone_number || null);
 
@@ -162,9 +175,15 @@ const taxInfo = computed(() => props.shop.tax_data?.[0] || null);
                     </a>
                 </div>
             </div>
-            <button @click="toggleFollow" class="btn-outline text-xs px-3 py-1.5" :class="{ 'bg-red-50 text-red-700 border-red-300': isFollowing }">
-                {{ isFollowing ? '✓ Siguiendo' : '+ Seguir tienda' }}
-            </button>
+            <!-- Botones de Seguir y Favorito -->
+            <div class="flex items-center gap-2">
+                <button @click="toggleFollow" class="btn-outline text-xs px-3 py-1.5" :class="{ 'bg-red-50 text-red-700 border-red-300': isFollowing }">
+                    {{ isFollowing ? '✓ Siguiendo' : '+ Seguir tienda' }}
+                </button>
+                <button @click="toggleFavorite" class="text-2xl transition-colors" :class="isShopFav ? 'text-red-500' : 'text-gray-400 hover:text-red-400'" title="Añadir a favoritos">
+                    {{ isShopFav ? '❤️' : '🤍' }}
+                </button>
+            </div>
         </div>
     </div>
 
