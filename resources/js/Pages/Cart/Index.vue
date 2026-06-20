@@ -1,6 +1,9 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import MainLayout from '@/Layouts/MainLayout.vue';
+
+defineOptions({ layout: MainLayout });
 
 const props = defineProps({
     cartItems: Array,
@@ -8,6 +11,9 @@ const props = defineProps({
 
 const editingItem = ref(null);
 const editForm = useForm({ quantity: 1 });
+
+const toastMessage = ref('');
+const toastVisible = ref(false);
 
 const startEdit = (item) => {
     editingItem.value = item.id;
@@ -23,17 +29,26 @@ const updateItem = (itemId) => {
         preserveScroll: true,
         onSuccess: () => {
             editingItem.value = null;
+            toastMessage.value = '✅ Cantidad actualizada';
+            toastVisible.value = true;
+            setTimeout(() => { toastVisible.value = false; }, 2000);
         },
     });
 };
 
 const removeItem = (itemId) => {
     if (confirm('¿Eliminar este producto del carrito?')) {
-        useForm({}).delete(route('cart.destroy', itemId), { preserveScroll: true });
+        useForm({}).delete(route('cart.destroy', itemId), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toastMessage.value = '🗑️ Producto eliminado';
+                toastVisible.value = true;
+                setTimeout(() => { toastVisible.value = false; }, 2000);
+            },
+        });
     }
 };
 
-// Calcular total
 const total = props.cartItems.reduce((sum, item) => {
     return sum + (item.product.price * item.quantity);
 }, 0);
@@ -41,6 +56,12 @@ const total = props.cartItems.reduce((sum, item) => {
 
 <template>
     <Head title="Carrito de Compras" />
+
+    <!-- Toast -->
+    <div v-if="toastVisible" class="fixed top-4 right-4 z-50 bg-green-600 text-white text-sm px-4 py-3 rounded-lg shadow-lg">
+        {{ toastMessage }}
+    </div>
+
     <div class="max-w-4xl mx-auto py-12 px-4">
         <h1 class="text-2xl font-bold mb-8">🛒 Tu Carrito</h1>
 
@@ -62,13 +83,11 @@ const total = props.cartItems.reduce((sum, item) => {
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
-                        <!-- Modo edición de cantidad -->
                         <div v-if="editingItem === item.id" class="flex items-center gap-2">
                             <input v-model="editForm.quantity" type="number" min="1" class="input-field w-16 text-center text-xs" />
                             <button @click="updateItem(item.id)" :disabled="editForm.processing" class="btn-dark text-xs px-2 py-1">OK</button>
                             <button @click="cancelEdit" class="text-xs text-gray-500">Cancelar</button>
                         </div>
-                        <!-- Modo vista -->
                         <template v-else>
                             <span class="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{{ item.quantity }} ud.</span>
                             <button @click="startEdit(item)" class="text-xs text-blue-600">Editar</button>
@@ -78,7 +97,6 @@ const total = props.cartItems.reduce((sum, item) => {
                 </div>
             </div>
 
-            <!-- Total y acción -->
             <div class="card flex justify-between items-center">
                 <div>
                     <span class="text-sm font-bold">Total:</span>

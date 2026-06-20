@@ -44,6 +44,15 @@ class HandleInertiaRequests extends Middleware
                     if (! $request->user()) return null;
                     return $request->user()->shop;
                 },
+                // Nuevo: carrito
+                'cartCount' => function () use ($request) {
+                    if (! $request->user()) return 0;
+                    return $request->user()->cartItems()->count();
+                },
+                'cartItems' => function () use ($request) {
+                    if (! $request->user()) return [];
+                    return $request->user()->cartItems()->with('product.shop')->get();
+                },
             ],
         ];
     }

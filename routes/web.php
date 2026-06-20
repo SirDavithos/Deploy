@@ -10,6 +10,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ShopController as AdminShopController;
 use App\Http\Controllers\Admin\PhoneController as AdminPhoneController;
@@ -140,6 +141,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
 
     Route::post('/tienda/{shop}/follow', [ShopController::class, 'toggleFollow'])->name('shop.follow');
+
+    Route::post('/favorites/shop/{shop}', [FavoriteController::class, 'toggleShop'])->name('favorites.shop.toggle');
+    Route::post('/favorites/product/{product}', [FavoriteController::class, 'toggleProduct'])->name('favorites.product.toggle');
+    Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
     
 });
 

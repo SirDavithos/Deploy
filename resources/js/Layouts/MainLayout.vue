@@ -6,6 +6,8 @@ const page = usePage();
 const user = computed(() => page.props.auth?.user || null);
 const userRoles = computed(() => page.props.auth?.userRoles || []);
 const userShop = computed(() => page.props.auth?.userShop || null);
+const cartCount = computed(() => page.props.auth?.cartCount || 0);
+const cartItems = computed(() => page.props.auth?.cartItems || []);
 
 // Avatar o iniciales
 const userAvatar = computed(() => user.value?.avatar ? `/storage/${user.value.avatar}` : null);
@@ -21,6 +23,17 @@ const handleSearch = () => {
         router.get(route('products.index'), { search: searchQuery.value });
     }
 };
+
+// Dropdown del carrito
+const showCartDropdown = ref(false);
+
+const toggleCartDropdown = () => {
+    showCartDropdown.value = !showCartDropdown.value;
+};
+
+const hideCartDropdown = () => {
+    showCartDropdown.value = false;
+};
 </script>
 
 <template>
@@ -28,7 +41,7 @@ const handleSearch = () => {
     <!-- HEADER ESTILO ETSY -->
     <header class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Fila superior: logo, buscador, acciones -->
+        <!-- Fila superior: logo, buscador, iconos -->
         <div class="flex items-center justify-between py-3 gap-4">
           <!-- Logo -->
           <Link :href="route('home')" class="flex items-center flex-shrink-0">
@@ -55,6 +68,13 @@ const handleSearch = () => {
 
           <!-- Iconos y menú de usuario -->
           <div class="flex items-center gap-3">
+            <!-- Favoritos -->
+            <Link :href="route('favorites.index')" class="btn-icon relative" title="Favoritos">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+              </svg>
+            </Link>
+
             <!-- Notificaciones (placeholder) -->
             <button class="btn-icon relative" title="Notificaciones">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -63,14 +83,45 @@ const handleSearch = () => {
               <span class="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">3</span>
             </button>
 
-            <!-- Carrito -->
-            <Link :href="route('cart.index')" class="btn-icon relative" title="Carrito">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-              </svg>
-              <!-- Contador de carrito (opcional, se puede dinamizar después) -->
-              <span v-if="false" class="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
-            </Link>
+            <!-- Carrito con dropdown -->
+            <div class="relative" @mouseleave="hideCartDropdown">
+              <button @click="toggleCartDropdown" class="btn-icon relative" title="Carrito">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                </svg>
+                <span v-if="cartCount > 0" class="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{{ cartCount }}</span>
+              </button>
+
+              <!-- Dropdown del carrito -->
+              <div v-if="showCartDropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-900 rounded-lg shadow-lg ring-1 ring-black/5 z-50 p-4">
+                <div v-if="cartItems.length > 0" class="space-y-3">
+                  <div v-for="item in cartItems.slice(0, 3)" :key="item.id" class="flex items-center gap-3">
+                    <img v-if="item.product.images?.length" :src="'/storage/' + item.product.images[0]" class="h-12 w-12 object-cover rounded" />
+                    <div v-else class="h-12 w-12 bg-gray-100 dark:bg-gray-800 rounded flex items-center justify-center text-xl">📦</div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-medium truncate">{{ item.product.title }}</p>
+                      <p class="text-xs text-gray-500">{{ item.quantity }} x {{ item.product.price }} BOB</p>
+                    </div>
+                  </div>
+                  <Link :href="route('cart.index')" class="btn-primary text-xs w-full py-2 text-center block" @click="showCartDropdown = false">
+                    Ver carrito completo
+                  </Link>
+                </div>
+                <div v-else class="text-center text-sm text-gray-500 py-4">
+                  Tu carrito está vacío
+                </div>
+              </div>
+            </div>
+
+            <!-- Botones según rol (visibles) -->
+            <template v-if="userRoles?.includes('artisan')">
+              <Link v-if="userShop" :href="route('shop.show', userShop.id)" class="btn-outline text-xs px-3 py-1.5">
+                🏪 Mi Tienda
+              </Link>
+              <Link v-else :href="route('shop.create')" class="btn-outline text-xs px-3 py-1.5">
+                🏪 Abrir Tienda
+              </Link>
+            </template>
 
             <!-- Visitante -->
             <template v-if="!user">
@@ -96,7 +147,6 @@ const handleSearch = () => {
                 <Link :href="route('dashboard')" class="dropdown-item flex items-center gap-2">
                   <span>📋</span> Mi Panel
                 </Link>
-                <!-- Opciones según rol -->
                 <template v-if="userRoles?.includes('artisan')">
                   <Link v-if="userShop" :href="route('shop.show', userShop.id)" class="dropdown-item flex items-center gap-2">
                     <span>🏪</span> Mi Tienda
@@ -113,6 +163,9 @@ const handleSearch = () => {
                 </Link>
                 <Link :href="route('orders.index')" class="dropdown-item flex items-center gap-2">
                   <span>📦</span> Mis Pedidos
+                </Link>
+                <Link :href="route('favorites.index')" class="dropdown-item flex items-center gap-2">
+                  <span>❤️</span> Favoritos
                 </Link>
                 <Link :href="route('profile.edit')" class="dropdown-item flex items-center gap-2">
                   <span>👤</span> Editar Perfil
@@ -149,7 +202,6 @@ const handleSearch = () => {
     <footer class="border-t border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-800">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="footer-grid">
-          <!-- Columna 1 -->
           <div>
             <h3 class="footer-title">Punto Boliviano</h3>
             <p class="text-xs text-gray-600 dark:text-gray-400 mb-4">
@@ -161,7 +213,6 @@ const handleSearch = () => {
             </div>
           </div>
 
-          <!-- Columna 2 -->
           <div>
             <h3 class="footer-title">Explorar</h3>
             <Link :href="route('products.index')" class="footer-link">Mercado</Link>
@@ -172,7 +223,6 @@ const handleSearch = () => {
             <Link :href="route('products.index', { category: 'tallados-madera' })" class="footer-link">Madera</Link>
           </div>
 
-          <!-- Columna 3 -->
           <div>
             <h3 class="footer-title">Vender</h3>
             <Link :href="route('shop.create')" class="footer-link">Abrir una tienda</Link>
@@ -181,7 +231,6 @@ const handleSearch = () => {
             <a href="#" class="footer-link">Tarifas</a>
           </div>
 
-          <!-- Columna 4 -->
           <div>
             <h3 class="footer-title">Ayuda</h3>
             <a href="#" class="footer-link">Centro de ayuda</a>

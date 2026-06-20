@@ -92,12 +92,10 @@ const toggleFollow = () => {
 // ==================== WHATSAPP / DIRECCIÓN ====================
 const primaryPhone = computed(() => props.shop.phones?.[0]?.phone_number || null);
 
-// Limpia el número para WhatsApp (elimina espacios, guiones, etc.)
 const waNumber = computed(() => {
     const raw = primaryPhone.value;
     if (!raw) return null;
     const cleaned = raw.replace(/[\s\-\(\)\+]/g, '');
-    // Si el número empieza con '591' ya tiene código de país, si no asumimos Bolivia
     const withCode = cleaned.startsWith('591') ? cleaned : '591' + cleaned;
     return withCode;
 });
@@ -112,8 +110,12 @@ const staticMapUrl = computed(() => {
     if (!hasGps.value) return null;
     const lat = primaryAddress.value.latitude;
     const lon = primaryAddress.value.longitude;
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.005},${lat-0.005},${lon+0.005},${lat+0.005}&layer=mapnik&marker=${lat},${lon}`;
+    const delta = 0.008; // ~800 metros
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${lon - delta},${lat - delta},${lon + delta},${lat + delta}&layer=mapnik&marker=${lat},${lon}`;
 });
+
+// Información fiscal (acceso rápido)
+const taxInfo = computed(() => props.shop.tax_data?.[0] || null);
 </script>
 
 <template>
@@ -147,6 +149,12 @@ const staticMapUrl = computed(() => {
                     <span v-else class="text-xs text-gray-400">Sin reseñas aún</span>
                     <span class="text-xs text-gray-500">|</span>
                     <span class="text-xs text-gray-600">{{ totalSales }} ventas</span>
+
+                    <!-- 🧾 Emite factura -->
+                    <span v-if="shop.is_tax_registered" class="text-xs text-green-600 font-medium" title="Esta tienda emite factura">
+                        🧾 Factura
+                    </span>
+
                     <!-- WhatsApp -->
                     <span v-if="primaryPhone" class="text-xs text-gray-500">|</span>
                     <a v-if="primaryPhone" :href="whatsappLink" target="_blank" class="text-xs text-green-600 font-bold hover:underline">
@@ -262,24 +270,32 @@ const staticMapUrl = computed(() => {
                 <p v-else class="text-sm text-gray-500">Esta tienda no tiene reseñas aún.</p>
             </div>
 
-            <!-- PESTAÑA INFORMACIÓN (Dirección y GPS) -->
+            <!-- PESTAÑA INFORMACIÓN (Dirección, GPS y Fiscal) -->
             <div v-if="activeTab === 'info'" class="space-y-6">
-                <h3 class="section-title">📍 Ubicación</h3>
-                <div v-if="primaryAddress" class="space-y-2">
-                    <p class="text-sm">{{ primaryAddress.street_address }}</p>
-                    <p class="text-sm text-gray-500">{{ primaryAddress.zone }}, {{ primaryAddress.city }}</p>
-                    <p v-if="primaryAddress.reference" class="text-xs text-gray-400">Ref: {{ primaryAddress.reference }}</p>
-                    <div v-if="hasGps" class="text-xs text-gray-500">
-                        🛰️ {{ primaryAddress.latitude }}, {{ primaryAddress.longitude }}
+                <!-- 📍 Ubicación -->
+                <div>
+                    <h3 class="section-title">📍 Ubicación</h3>
+                    <div v-if="primaryAddress" class="space-y-2">
+                        <p class="text-sm">{{ primaryAddress.street_address }}</p>
+                        <p class="text-sm text-gray-500">{{ primaryAddress.zone }}, {{ primaryAddress.city }}</p>
+                        <p v-if="primaryAddress.reference" class="text-xs text-gray-400">Ref: {{ primaryAddress.reference }}</p>
+                        <div v-if="hasGps" class="space-y-2">
+                            <div class="text-xs text-gray-500">
+                                🛰️ {{ primaryAddress.latitude }}, {{ primaryAddress.longitude }}
+                            </div>
+                            <div class="w-full h-64 rounded-lg overflow-hidden border dark:border-gray-700">
+                                <iframe :src="staticMapUrl" width="100%" height="100%" frameborder="0" scrolling="no"></iframe>
+                            </div>
+                            <a :href="`https://www.openstreetmap.org/?mlat=${primaryAddress.latitude}&mlon=${primaryAddress.longitude}#map=17/${primaryAddress.latitude}/${primaryAddress.longitude}`" target="_blank" class="text-xs text-blue-600 hover:underline">
+                                Ver en OpenStreetMap →
+                            </a>
+                        </div>
                     </div>
-                    <!-- Mapa estático (iframe) -->
-                    <div v-if="staticMapUrl" class="w-full h-64 rounded-lg overflow-hidden border dark:border-gray-700 mt-4">
-                        <iframe :src="staticMapUrl" width="100%" height="100%" frameborder="0" scrolling="no"></iframe>
-                    </div>
+                    <div v-else class="text-sm text-gray-500">Esta tienda no ha registrado una dirección.</div>
                 </div>
-                <div v-else class="text-sm text-gray-500">Esta tienda no ha registrado una dirección.</div>
 
-                <div class="border-t pt-4 mt-4">
+                <!-- 📞 Contacto -->
+                <div class="border-t pt-4">
                     <h3 class="section-title mb-2">📞 Contacto</h3>
                     <div v-if="primaryPhone">
                         <a :href="whatsappLink" target="_blank" class="btn-whatsapp inline-flex items-center gap-2">
@@ -287,6 +303,18 @@ const staticMapUrl = computed(() => {
                         </a>
                     </div>
                     <p v-else class="text-sm text-gray-500">No hay teléfono de contacto.</p>
+                </div>
+
+                <!-- 🧾 Información Fiscal -->
+                <div v-if="shop.is_tax_registered && taxInfo" class="border-t pt-4 mt-4">
+                    <h3 class="section-title mb-2">🧾 Información Fiscal</h3>
+                    <div class="space-y-1 text-sm">
+                        <p><span class="text-xs font-bold text-gray-500">NIT:</span> {{ taxInfo.nit_or_ci }}</p>
+                        <p><span class="text-xs font-bold text-gray-500">Razón Social:</span> {{ taxInfo.business_name }}</p>
+                        <p v-if="taxInfo.tax_regimen">
+                            <span class="text-xs font-bold text-gray-500">Régimen:</span> {{ taxInfo.tax_regimen }}
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

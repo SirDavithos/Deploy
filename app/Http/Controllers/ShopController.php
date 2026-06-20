@@ -11,9 +11,6 @@ use Inertia\Inertia;
 
 class ShopController extends Controller
 {
-    /**
-     * Muestra el formulario para solicitar apertura de tienda.
-     */
     public function create()
     {
         if (Auth::user()->shop) {
@@ -23,9 +20,6 @@ class ShopController extends Controller
         return Inertia::render('Shop/Create');
     }
 
-    /**
-     * Guarda la solicitud de tienda.
-     */
     public function store(Request $request)
     {
         $user = Auth::user();
@@ -35,35 +29,43 @@ class ShopController extends Controller
         }
 
         $validated = $request->validate([
-            'name'           => 'required|string|max:255',
-            'description'    => 'nullable|string',
-            'avatar'         => 'nullable|image|max:2048',
-            'banner'         => 'nullable|image|max:4096',
-            'images'         => 'nullable|array',
-            'images.*'       => 'image|max:2048',
-            'phone_number'   => 'required|string|max:20',
-            'phone_type'     => 'required|string|max:50',
-            'city'           => 'required|string|max:255',
-            'zone'           => 'required|string|max:255',
-            'street_address' => 'required|string|max:255',
-            'reference'      => 'nullable|string|max:255',
+            'name'                => 'required|string|max:255',
+            'description'         => 'nullable|string',
+            'avatar'              => 'nullable|image|max:2048',
+            'banner'              => 'nullable|image|max:4096',
+            'images'              => 'nullable|array',
+            'images.*'            => 'image|max:2048',
+            'phone_number'        => 'required|string|max:20',
+            'phone_type'          => 'required|string|max:50',
+            'city'                => 'required|string|max:255',
+            'zone'                => 'required|string|max:255',
+            'street_address'      => 'required|string|max:255',
+            'reference'           => 'nullable|string|max:255',
+            'is_tax_registered'   => 'boolean',
+            'shop_nit_or_ci'      => 'nullable|string|max:50',
+            'shop_business_name'  => 'nullable|string|max:255',
+            'shop_tax_regimen'    => 'nullable|string|max:100',
         ]);
 
-        // Subir avatar
+        if ($request->boolean('is_tax_registered')) {
+            $request->validate([
+                'shop_nit_or_ci'      => 'required|string|max:50',
+                'shop_business_name'  => 'required|string|max:255',
+            ]);
+        }
+
         if ($request->hasFile('avatar')) {
             $validated['avatar'] = $request->file('avatar')->store('shops/avatars', 'public');
         } else {
             $validated['avatar'] = null;
         }
 
-        // Subir banner
         if ($request->hasFile('banner')) {
             $validated['banner'] = $request->file('banner')->store('shops/banners', 'public');
         } else {
             $validated['banner'] = null;
         }
 
-        // Procesar imágenes generales
         $imagePaths = [];
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
@@ -71,7 +73,6 @@ class ShopController extends Controller
             }
         }
 
-        // Generar slug único
         $slug = Str::slug($validated['name']);
         $originalSlug = $slug;
         $counter = 1;
@@ -79,24 +80,22 @@ class ShopController extends Controller
             $slug = $originalSlug . '-' . $counter++;
         }
 
-        // Crear la tienda
         $shop = $user->shop()->create([
-            'name'        => $validated['name'],
-            'slug'        => $slug,
-            'description' => $validated['description'] ?? null,
-            'avatar'      => $validated['avatar'],
-            'banner'      => $validated['banner'],
-            'images'      => $imagePaths,
-            'status'      => 'pending',
+            'name'               => $validated['name'],
+            'slug'               => $slug,
+            'description'        => $validated['description'] ?? null,
+            'avatar'             => $validated['avatar'],
+            'banner'             => $validated['banner'],
+            'images'             => $imagePaths,
+            'status'             => 'pending',
+            'is_tax_registered'  => $request->boolean('is_tax_registered'),
         ]);
 
-        // Crear teléfono asociado
         $shop->phones()->create([
             'phone_number' => $validated['phone_number'],
             'type'         => $validated['phone_type'],
         ]);
 
-        // Crear dirección asociada
         $shop->addresses()->create([
             'city'           => $validated['city'],
             'zone'           => $validated['zone'],
@@ -105,20 +104,35 @@ class ShopController extends Controller
             'is_default'     => true,
         ]);
 
+        if ($shop->is_tax_registered) {
+            $shop->taxData()->create([
+                'nit_or_ci'      => $validated['shop_nit_or_ci'],
+                'business_name'  => $validated['shop_business_name'],
+                'tax_regimen'    => $validated['shop_tax_regimen'] ?? null,
+                'is_default'     => true,
+            ]);
+        }
+
         return redirect()->route('shop.show', $shop->id)
             ->with('status', '¡Solicitud enviada! Espera la aprobación.');
     }
 
-    /**
-     * Muestra el panel de la tienda (dashboard del artesano).
-     */
     public function show(Shop $shop)
     {
         if ($shop->user_id !== Auth::id() && !Auth::user()->hasRole('admin')) {
             abort(403);
         }
 
-        $shop->load('phones', 'addresses', 'owner', 'products', 'orders.items.product', 'orders.buyer', 'orders.taxData');
+        $shop->load([
+            'phones',
+            'addresses',
+            'owner',
+            'products',
+            'orders.items.product',
+            'orders.buyer',
+            'orders.taxData',
+            'taxData',
+        ]);
 
         return Inertia::render('Shop/Show', [
             'shop'    => $shop,
@@ -126,9 +140,6 @@ class ShopController extends Controller
         ]);
     }
 
-    /**
-     * Actualiza los datos de la tienda (nombre, descripción, avatar, banner).
-     */
     public function update(Request $request, Shop $shop)
     {
         if ($shop->user_id !== Auth::id()) {
@@ -136,13 +147,23 @@ class ShopController extends Controller
         }
 
         $validated = $request->validate([
-            'name'        => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'avatar'      => 'nullable|image|max:2048',
-            'banner'      => 'nullable|image|max:4096',
+            'name'               => 'required|string|max:255',
+            'description'        => 'nullable|string',
+            'avatar'             => 'nullable|image|max:2048',
+            'banner'             => 'nullable|image|max:4096',
+            'is_tax_registered'  => 'boolean',
+            'shop_nit_or_ci'     => 'nullable|string|max:50',
+            'shop_business_name' => 'nullable|string|max:255',
+            'shop_tax_regimen'   => 'nullable|string|max:100',
         ]);
 
-        // Avatar
+        if ($request->boolean('is_tax_registered')) {
+            $request->validate([
+                'shop_nit_or_ci'      => 'required|string|max:50',
+                'shop_business_name'  => 'required|string|max:255',
+            ]);
+        }
+
         if ($request->hasFile('avatar')) {
             if ($shop->avatar) {
                 Storage::disk('public')->delete($shop->avatar);
@@ -152,7 +173,6 @@ class ShopController extends Controller
             unset($validated['avatar']);
         }
 
-        // Banner
         if ($request->hasFile('banner')) {
             if ($shop->banner) {
                 Storage::disk('public')->delete($shop->banner);
@@ -162,7 +182,24 @@ class ShopController extends Controller
             unset($validated['banner']);
         }
 
-        $shop->update($validated);
+        $shop->update([
+            'name'               => $validated['name'],
+            'description'        => $validated['description'] ?? $shop->description,
+            'is_tax_registered'  => $request->boolean('is_tax_registered'),
+        ]);
+
+        if ($shop->is_tax_registered) {
+            $shop->taxData()->updateOrCreate(
+                ['is_default' => true],
+                [
+                    'nit_or_ci'     => $validated['shop_nit_or_ci'],
+                    'business_name' => $validated['shop_business_name'],
+                    'tax_regimen'   => $validated['shop_tax_regimen'] ?? null,
+                ]
+            );
+        } else {
+            $shop->taxData()->delete();
+        }
 
         return back()->with('status', 'Tienda actualizada correctamente.');
     }
@@ -175,7 +212,8 @@ class ShopController extends Controller
         $shop->load([
             'owner',
             'phones',
-            'addresses',  // ← Necesario para la pestaña de información y GPS
+            'addresses',
+            'taxData',
             'products' => function ($query) {
                 $query->where('status', 'published')
                     ->withAvg('reviews', 'rating')
@@ -197,18 +235,16 @@ class ShopController extends Controller
         $shop->setAttribute('sales_count', $shop->orders->count());
         $shop->setAttribute('all_reviews', $allReviews);
 
-        // Determinar si el usuario actual sigue esta tienda
+        // Determinar si el usuario actual sigue esta tienda o es favorita
         $user = Auth::user();
         $shop->setAttribute('is_followed_by_user', $user ? $user->followedShops()->where('shop_id', $shop->id)->exists() : false);
+        $shop->setAttribute('is_favorited', $user ? $user->favoriteShops()->where('shop_id', $shop->id)->exists() : false);
 
         return Inertia::render('Shop/View', [
             'shop' => $shop,
         ]);
     }
 
-    /**
-     * Seguir / dejar de seguir una tienda.
-     */
     public function toggleFollow(Request $request, Shop $shop)
     {
         $user = $request->user();
@@ -229,9 +265,6 @@ class ShopController extends Controller
         return back()->with('status', $newState ? 'Siguiendo tienda' : 'Dejaste de seguir');
     }
 
-    /**
-     * Listado de tiendas para administración.
-     */
     public function index()
     {
         abort(404);

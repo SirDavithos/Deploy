@@ -1,5 +1,8 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import MainLayout from '@/Layouts/MainLayout.vue';
+
+defineOptions({ layout: MainLayout });
 
 const props = defineProps({
     cartItems: Array,
@@ -29,7 +32,6 @@ const submitOrder = () => {
         <h1 class="text-2xl font-bold mb-8">📋 Confirmar Pedido</h1>
 
         <div class="space-y-6">
-            <!-- Resumen del carrito -->
             <div class="card">
                 <h3 class="section-title mb-3">Productos ({{ cartItems.length }})</h3>
                 <ul class="space-y-2">
@@ -44,7 +46,6 @@ const submitOrder = () => {
                 </div>
             </div>
 
-            <!-- Seleccionar dirección -->
             <div class="card">
                 <h3 class="section-title mb-3">📍 Dirección de Entrega</h3>
                 <div v-if="addresses.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -61,7 +62,6 @@ const submitOrder = () => {
                 <p v-if="form.errors.address_id" class="text-red-500 text-[11px] mt-2">{{ form.errors.address_id }}</p>
             </div>
 
-            <!-- Seleccionar facturación -->
             <div class="card">
                 <h3 class="section-title mb-3">💼 Datos de Facturación</h3>
                 <div v-if="taxData.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -78,7 +78,6 @@ const submitOrder = () => {
                 <p v-if="form.errors.tax_data_id" class="text-red-500 text-[11px] mt-2">{{ form.errors.tax_data_id }}</p>
             </div>
 
-            <!-- Botón final -->
             <div class="flex justify-end">
                 <button @click="submitOrder" :disabled="form.processing" class="btn-primary text-sm px-8 py-3">
                     Confirmar Pedido

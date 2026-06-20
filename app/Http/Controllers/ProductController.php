@@ -89,11 +89,24 @@ class ProductController extends Controller
             ->take(4)
             ->get();
 
+        $user = Auth::user();
+        $product->setAttribute('is_favorited', $user ? $user->favoriteProducts()->where('product_id', $product->id)->exists() : false);
+        $canReview = false;
+        if ($user) {
+            // Verificar si el usuario tiene un pedido entregado que contenga este producto
+            $canReview = $user->orders()
+                ->where('status', 'delivered')
+                ->whereHas('items', function ($q) use ($product) {
+                    $q->where('product_id', $product->id);
+                })->exists();
+        }
+
         return Inertia::render('Products/Show', [
-            'product' => $product,
-            'relatedProducts' => $relatedProducts,
-            'canReview' => $this->userCanReview($product), // método helper que verifica si el usuario puede opinar
+            'product'         => $product,
+            'relatedProducts' => $relatedProducts ?? [],
+            'canReview'       => $canReview,
         ]);
+        
     }
 
     // Formulario para crear producto (solo artesanos con tienda)

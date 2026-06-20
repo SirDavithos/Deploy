@@ -16,10 +16,21 @@ class ReviewController extends Controller
             'comment' => 'nullable|string|max:500',
         ]);
 
-        // Evitar que el usuario haga más de una reseña por producto (opcional)
+        // Verificar que el usuario haya recibido este producto
+        $hasReceived = Auth::user()->orders()
+            ->where('status', 'delivered')
+            ->whereHas('items', function ($q) use ($product) {
+                $q->where('product_id', $product->id);
+            })->exists();
+
+        if (!$hasReceived) {
+            return back()->with('error', 'Solo los compradores verificados pueden opinar.');
+        }
+
         $existing = Review::where('product_id', $product->id)
             ->where('user_id', Auth::id())
             ->first();
+
         if ($existing) {
             return back()->with('error', 'Ya has opinado sobre este producto.');
         }

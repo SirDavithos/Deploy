@@ -159,6 +159,11 @@ const updateProfile = () => {
         onSuccess: () => profileForm.reset('avatar'),
     });
 };
+
+// ==================== DESCARGA DE FACTURA ====================
+const downloadInvoice = (orderId) => {
+    window.location.href = route('orders.invoice', orderId);
+};
 </script>
 
 <template>
@@ -270,8 +275,8 @@ const updateProfile = () => {
                                                 'badge-pending': order.status === 'pending',
                                                 'badge-success': order.status === 'delivered' || order.status === 'confirmed',
                                             }">{{ order.status }}</span>
-                                            <!-- Enlace de factura -->
-                                            <Link v-if="order.tax_data" :href="route('orders.invoice', order.id)" class="text-xs text-blue-600 hover:underline ml-2">📄 Factura</Link>
+                                            <!-- Enlace de factura corregido -->
+                                            <button v-if="order.tax_data" @click="downloadInvoice(order.id)" class="btn-outline text-xs px-2 py-1 ml-2">📄 Factura</button>
                                         </div>
                                     </div>
                                 </div>

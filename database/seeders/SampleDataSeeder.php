@@ -22,6 +22,7 @@ class SampleDataSeeder extends Seeder
         DB::table('orders')->truncate();
         DB::table('carts')->truncate();
         DB::table('products')->truncate();
+        DB::table('shop_tax_data')->truncate();   // <-- nueva tabla
         DB::table('shop_phones')->truncate();
         DB::table('shop_addresses')->truncate();
         DB::table('shops')->truncate();
@@ -68,7 +69,7 @@ class SampleDataSeeder extends Seeder
             ['first_name' => 'Mónica', 'paternal_last_name' => 'Flores', 'maternal_last_name' => 'Apaza', 'ci_number' => '2345678', 'ci_extension' => 'LP', 'birth_date' => '1990-07-22', 'email' => 'monica.flores@admin.pb.bo'],
         ];
 
-        // Vendedores especializados cada uno en una categoría
+        // Vendedores especializados (10)
         $vendedores = [
             ['first_name' => 'Juana',   'paternal_last_name' => 'Condori',  'maternal_last_name' => 'Ticona',   'ci_number' => '3456789', 'ci_extension' => 'LP', 'birth_date' => '1980-11-02', 'email' => 'juana.condori@email.com', 'cat_slug' => 'textiles-aguayos'],
             ['first_name' => 'Pedro',   'paternal_last_name' => 'Mamani',   'maternal_last_name' => 'López',    'ci_number' => '4567890', 'ci_extension' => 'LP', 'birth_date' => '1978-05-17', 'email' => 'pedro.mamani@email.com', 'cat_slug' => 'joyeria-plata'],
@@ -82,6 +83,7 @@ class SampleDataSeeder extends Seeder
             ['first_name' => 'Oscar',   'paternal_last_name' => 'Mendoza',  'maternal_last_name' => 'León',     'ci_number' => '3123458', 'ci_extension' => 'LP', 'birth_date' => '1984-10-18', 'email' => 'oscar.mendoza@email.com', 'cat_slug' => 'bordados-tejidos'],
         ];
 
+        // Compradores (25 personas)
         $compradores = [
             ['first_name' => 'María',     'paternal_last_name' => 'Rodríguez', 'maternal_last_name' => 'Pérez',     'ci_number' => '4123459', 'ci_extension' => 'LP', 'birth_date' => '1993-02-28', 'email' => 'maria.rodriguez@email.com'],
             ['first_name' => 'José',      'paternal_last_name' => 'López',     'maternal_last_name' => 'García',    'ci_number' => '5123460', 'ci_extension' => 'LP', 'birth_date' => '1986-07-14', 'email' => 'jose.lopez@email.com'],
@@ -93,6 +95,22 @@ class SampleDataSeeder extends Seeder
             ['first_name' => 'Roberto',   'paternal_last_name' => 'Vargas',    'maternal_last_name' => 'Ponce',     'ci_number' => '2123466', 'ci_extension' => 'LP', 'birth_date' => '1988-01-29', 'email' => 'roberto.vargas@email.com'],
             ['first_name' => 'Angélica',  'paternal_last_name' => 'Morales',   'maternal_last_name' => 'Siles',     'ci_number' => '3123467', 'ci_extension' => 'LP', 'birth_date' => '1994-08-22', 'email' => 'angelica.morales@email.com'],
             ['first_name' => 'Francisco', 'paternal_last_name' => 'Ortiz',     'maternal_last_name' => 'Pizarro',   'ci_number' => '4123468', 'ci_extension' => 'LP', 'birth_date' => '1981-06-07', 'email' => 'francisco.ortiz@email.com'],
+            // 15 compradores adicionales
+            ['first_name' => 'Patricia',  'paternal_last_name' => 'Rojas',     'maternal_last_name' => 'Mendoza',   'ci_number' => '5123469', 'ci_extension' => 'LP', 'birth_date' => '1991-11-15', 'email' => 'patricia.rojas@email.com'],
+            ['first_name' => 'Fernando',  'paternal_last_name' => 'Cruz',      'maternal_last_name' => 'Aliaga',    'ci_number' => '6123470', 'ci_extension' => 'LP', 'birth_date' => '1985-06-21', 'email' => 'fernando.cruz@email.com'],
+            ['first_name' => 'Gabriela',  'paternal_last_name' => 'Villanueva','maternal_last_name' => 'Paz',       'ci_number' => '7123471', 'ci_extension' => 'LP', 'birth_date' => '1994-03-09', 'email' => 'gabriela.villanueva@email.com'],
+            ['first_name' => 'Hugo',      'paternal_last_name' => 'Ticona',    'maternal_last_name' => 'Quispe',    'ci_number' => '8123472', 'ci_extension' => 'LP', 'birth_date' => '1978-10-12', 'email' => 'hugo.ticona@email.com'],
+            ['first_name' => 'Daniela',   'paternal_last_name' => 'Zambrana',  'maternal_last_name' => 'Aruquipa',  'ci_number' => '9123473', 'ci_extension' => 'LP', 'birth_date' => '1999-01-25', 'email' => 'daniela.zambrana@email.com'],
+            ['first_name' => 'Andrés',    'paternal_last_name' => 'Chávez',    'maternal_last_name' => 'Torrico',   'ci_number' => '1123474', 'ci_extension' => 'LP', 'birth_date' => '1983-08-17', 'email' => 'andres.chavez@email.com'],
+            ['first_name' => 'Natalia',   'paternal_last_name' => 'Guzmán',    'maternal_last_name' => 'Vargas',    'ci_number' => '2123475', 'ci_extension' => 'LP', 'birth_date' => '1996-04-05', 'email' => 'natalia.guzman@email.com'],
+            ['first_name' => 'Javier',    'paternal_last_name' => 'Peña',      'maternal_last_name' => 'Miranda',   'ci_number' => '3123476', 'ci_extension' => 'LP', 'birth_date' => '1989-12-30', 'email' => 'javier.pena@email.com'],
+            ['first_name' => 'Lucía',     'paternal_last_name' => 'Montaño',   'maternal_last_name' => 'Pari',      'ci_number' => '4123477', 'ci_extension' => 'LP', 'birth_date' => '1995-07-19', 'email' => 'lucia.montano@email.com'],
+            ['first_name' => 'Raúl',      'paternal_last_name' => 'Calle',     'maternal_last_name' => 'Condo',     'ci_number' => '5123478', 'ci_extension' => 'LP', 'birth_date' => '1982-02-14', 'email' => 'raul.calle@email.com'],
+            ['first_name' => 'Sara',      'paternal_last_name' => 'Tola',      'maternal_last_name' => 'Huanca',    'ci_number' => '6123479', 'ci_extension' => 'LP', 'birth_date' => '1997-09-08', 'email' => 'sara.tola@email.com'],
+            ['first_name' => 'Diego',     'paternal_last_name' => 'Paredes',   'maternal_last_name' => 'Luna',      'ci_number' => '7123480', 'ci_extension' => 'LP', 'birth_date' => '1990-06-26', 'email' => 'diego.paredes@email.com'],
+            ['first_name' => 'Mónica',    'paternal_last_name' => 'Quisbert',  'maternal_last_name' => 'Flores',    'ci_number' => '8123481', 'ci_extension' => 'LP', 'birth_date' => '1984-11-02', 'email' => 'monica.quisbert@email.com'],
+            ['first_name' => 'Juan',      'paternal_last_name' => 'Mamani',    'maternal_last_name' => 'Gutiérrez', 'ci_number' => '9123482', 'ci_extension' => 'LP', 'birth_date' => '1987-04-15', 'email' => 'juan.mamani@email.com'],
+            ['first_name' => 'Carla',     'paternal_last_name' => 'Salazar',   'maternal_last_name' => 'Vásquez',   'ci_number' => '1123483', 'ci_extension' => 'LP', 'birth_date' => '1998-10-31', 'email' => 'carla.salazar@email.com'],
         ];
 
         $allUsers = [
@@ -111,6 +129,7 @@ class SampleDataSeeder extends Seeder
         $productData = [];
         $shopPhoneData = [];
         $shopAddressData = [];
+        $shopTaxData = [];          // <-- datos fiscales de la tienda
         $reviewData = [];
         $orderData = [];
         $orderItemData = [];
@@ -152,7 +171,7 @@ class SampleDataSeeder extends Seeder
             'bordados-tejidos' => [40, 300],
         ];
 
-        // Comentarios para reseñas (muchos más variados)
+        // Comentarios para reseñas
         $positiveComments = [
             'Excelente calidad, muy recomendado.',
             'Hermoso trabajo artesanal.',
@@ -204,7 +223,6 @@ class SampleDataSeeder extends Seeder
             $roleSlug = $roleGroup['role'];
             $roleId = $roleIds[$roleSlug];
             foreach ($roleGroup['data'] as $userData) {
-                // Guardar cat_slug antes de eliminarlo
                 $catSlug = $userData['cat_slug'] ?? null;
                 unset($userData['cat_slug']);
 
@@ -227,7 +245,6 @@ class SampleDataSeeder extends Seeder
                     'updated_at' => $now,
                 ]);
 
-                // Guardar IDs de compradores para pedidos y reseñas
                 if ($roleSlug === 'customer') {
                     $customerIds[] = $userId;
                 }
@@ -237,7 +254,7 @@ class SampleDataSeeder extends Seeder
                 $phoneData[] = ['user_id' => $userId, 'phone_number' => '2' . rand(1000000, 9999999), 'type' => 'Fijo Domicilio', 'created_at' => $now, 'updated_at' => $now];
                 $phoneData[] = ['user_id' => $userId, 'phone_number' => '6' . rand(1000000, 9999999), 'type' => 'Trabajo', 'created_at' => $now, 'updated_at' => $now];
 
-                // 3 Direcciones por usuario
+                // 3 Direcciones por usuario (con GPS)
                 for ($i = 0; $i < 3; $i++) {
                     $zona = $zonas[array_rand($zonas)];
                     $calle = $calles[array_rand($calles)] . ' #' . rand(100, 9999);
@@ -286,15 +303,19 @@ class SampleDataSeeder extends Seeder
                     $slug = Str::slug($shopName) . '-' . $userId;
                     $shopId = count($shopData) + 1;
 
+                    // La mitad de las tiendas serán is_tax_registered
+                    $isTaxRegistered = (count($shopData) % 2 === 0);
+
                     $shopData[] = [
-                        'id'          => $shopId,
-                        'user_id'     => $userId,
-                        'name'        => $shopName,
-                        'slug'        => $slug,
-                        'description' => 'Tienda especializada en ' . DB::table('categories')->where('slug', $catSlug)->value('name'),
-                        'status'      => $status,
-                        'created_at'  => $now,
-                        'updated_at'  => $now,
+                        'id'                => $shopId,
+                        'user_id'           => $userId,
+                        'name'              => $shopName,
+                        'slug'              => $slug,
+                        'description'       => 'Tienda especializada en ' . DB::table('categories')->where('slug', $catSlug)->value('name'),
+                        'status'            => $status,
+                        'is_tax_registered' => $isTaxRegistered,
+                        'created_at'        => $now,
+                        'updated_at'        => $now,
                     ];
 
                     if ($status === 'approved') {
@@ -305,7 +326,7 @@ class SampleDataSeeder extends Seeder
                     $shopPhoneData[] = ['shop_id' => $shopId, 'phone_number' => '7' . rand(1000000, 9999999), 'type' => 'Principal', 'created_at' => $now, 'updated_at' => $now];
                     $shopPhoneData[] = ['shop_id' => $shopId, 'phone_number' => '2' . rand(1000000, 9999999), 'type' => 'Fijo', 'created_at' => $now, 'updated_at' => $now];
 
-                    // 1 Dirección para la tienda
+                    // 1 Dirección para la tienda (CON GPS)
                     $zona = $zonas[array_rand($zonas)];
                     $calle = $calles[array_rand($calles)] . ' #' . rand(100, 9999);
                     $shopAddressData[] = [
@@ -315,9 +336,25 @@ class SampleDataSeeder extends Seeder
                         'street_address' => $calle,
                         'reference'      => 'Local ' . rand(1, 50),
                         'is_default'     => true,
+                        'latitude'       => round(-16.5 + (rand(-500, 500) / 10000), 8),
+                        'longitude'      => round(-68.15 + (rand(-500, 500) / 10000), 8),
                         'created_at'     => $now,
                         'updated_at'     => $now,
                     ];
+
+                    // Datos fiscales para la tienda si es is_tax_registered
+                    if ($isTaxRegistered) {
+                        $shopTaxData[] = [
+                            'shop_id'       => $shopId,
+                            'nit_or_ci'     => $userData['ci_number'] . '003',
+                            'business_name' => 'Artesanías ' . $userData['paternal_last_name'] . ' S.R.L.',
+                            'tax_regimen'   => 'Régimen General',
+                            'alias'         => 'Tienda',
+                            'is_default'    => true,
+                            'created_at'    => $now,
+                            'updated_at'    => $now,
+                        ];
+                    }
 
                     // 15 Productos por tienda, de su categoría
                     $titles = $productTitles[$catSlug];
@@ -344,13 +381,14 @@ class SampleDataSeeder extends Seeder
             }
         }
 
-        // Insertar todos los datos preparados
+        // Insertar todos los datos
         DB::table('user_phones')->insert($phoneData);
         DB::table('user_addresses')->insert($addressData);
         DB::table('user_tax_data')->insert($taxData);
         DB::table('shops')->insert($shopData);
         DB::table('shop_phones')->insert($shopPhoneData);
         DB::table('shop_addresses')->insert($shopAddressData);
+        DB::table('shop_tax_data')->insert($shopTaxData);   // <-- nueva inserción
         DB::table('products')->insert($productData);
 
         // Obtener IDs de productos por tienda
@@ -359,16 +397,20 @@ class SampleDataSeeder extends Seeder
             $productIdsByShop[$prod->shop_id][] = $prod->id;
         }
 
-        // ==================== RESEÑAS (MUCHAS MÁS) ====================
-        // Para cada tienda aprobada, TODOS sus productos reciben reseñas de TODOS los compradores
+        // ==================== RESEÑAS ====================
         foreach ($approvedShopIds as $shopId) {
             $shopProductIds = $productIdsByShop[$shopId] ?? [];
             if (empty($shopProductIds)) continue;
 
-            // Ahora TODOS los productos de esta tienda reciben reseñas
-            foreach ($shopProductIds as $productId) {
-                // Cada comprador deja una reseña en este producto
-                foreach ($customerIds as $custId) {
+            // Elegir solo algunos productos para reseñar (no todos, para hacerlo más realista)
+            $reviewProductIds = array_slice($shopProductIds, 0, 5);
+
+            foreach ($reviewProductIds as $productId) {
+                // No todos los compradores reseñan cada producto
+                $chosenCustomers = array_rand(array_flip($customerIds), rand(5, count($customerIds)));
+                if (!is_array($chosenCustomers)) $chosenCustomers = [$chosenCustomers];
+
+                foreach ($chosenCustomers as $custId) {
                     $rating = rand(1, 5);
                     if ($rating >= 4) {
                         $comment = $positiveComments[array_rand($positiveComments)];
@@ -395,16 +437,16 @@ class SampleDataSeeder extends Seeder
         $orderId = 1;
 
         foreach ($customerIds as $custId) {
-            // Obtener direcciones y taxData de este comprador
             $custAddressIds = DB::table('user_addresses')->where('user_id', $custId)->pluck('id')->toArray();
             $custTaxIds = DB::table('user_tax_data')->where('user_id', $custId)->pluck('id')->toArray();
 
-            for ($i = 0; $i < 10; $i++) {
+            // Cada comprador hace entre 3 y 8 pedidos
+            $numOrders = rand(3, 8);
+            for ($i = 0; $i < $numOrders; $i++) {
                 $shopId = $approvedShopIds[array_rand($approvedShopIds)];
                 $shopProductIds = $productIdsByShop[$shopId] ?? [];
                 if (empty($shopProductIds)) continue;
 
-                // Elegir 1 o 2 productos
                 $numItems = rand(1, 2);
                 $orderProductIds = array_rand(array_flip($shopProductIds), $numItems);
                 if (!is_array($orderProductIds)) $orderProductIds = [$orderProductIds];

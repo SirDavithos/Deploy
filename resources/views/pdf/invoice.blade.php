@@ -2,33 +2,23 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Factura #{{ $order->id }}</title>
+    <title>Recibo #{{ $order->id }}</title>
     <style>
         body { font-family: Arial, sans-serif; font-size: 10px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 6px 8px; border: 1px solid #ccc; text-align: left; }
         th { background-color: #f2f2f2; }
-        .header { margin-bottom: 20px; }
-        .header h1 { font-size: 16px; margin: 0; }
-        .info { margin-bottom: 15px; }
-        .info p { margin: 3px 0; }
-        .total { text-align: right; font-size: 14px; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>PUNTO BOLIVIANO - Factura de Compra</h1>
-        <p>Fecha: {{ now()->format('d/m/Y H:i') }}</p>
-    </div>
-
-    <div class="info">
-        <p><strong>Comprador:</strong> {{ $order->buyer->first_name }} {{ $order->buyer->paternal_last_name }} (CI: {{ $order->buyer->ci_number }} {{ $order->buyer->ci_extension }})</p>
-        <p><strong>Email:</strong> {{ $order->buyer->email }}</p>
-        @if($order->taxData)
-        <p><strong>Facturación:</strong> {{ $order->taxData->nit_or_ci }} - {{ $order->taxData->business_name }}</p>
-        @endif
-        <p><strong>Tienda:</strong> {{ $order->shop->name ?? 'No disponible' }}</p>
-    </div>
+    <h1>Punto Boliviano - Recibo de Compra</h1>
+    <p><strong>Pedido #{{ $order->id }}</strong></p>
+    <p>Fecha: {{ optional($order->created_at)->format('d/m/Y H:i') }}</p>
+    <p>Tienda: {{ $order->shop->name ?? 'No disponible' }}</p>
+    <p>Comprador: {{ $order->buyer->first_name ?? '' }} {{ $order->buyer->paternal_last_name ?? '' }}</p>
+    @if($order->taxData)
+        <p>NIT/CI: {{ $order->taxData->nit_or_ci }} - {{ $order->taxData->business_name }}</p>
+    @endif
 
     <table>
         <thead>
@@ -51,8 +41,6 @@
         </tbody>
     </table>
 
-    <div class="total">
-        TOTAL: {{ number_format($order->total, 2) }} BOB
-    </div>
+    <h2 style="text-align: right; margin-top: 10px;">Total: {{ number_format($order->total, 2) }} BOB</h2>
 </body>
 </html>

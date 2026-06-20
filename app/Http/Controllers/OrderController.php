@@ -81,14 +81,52 @@ class OrderController extends Controller
     }
 
     // Historial del comprador
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Auth::user()->orders()
-            ->with('shop', 'items.product')
-            ->latest()
-            ->get();
+        $query = Auth::user()->orders()
+            ->with('shop', 'items.product', 'taxData');
 
-        return Inertia::render('Orders/Index', ['orders' => $orders]);
+        // Filtro por búsqueda (ID, tienda, producto)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                ->orWhereHas('shop', function($q2) use ($search) {
+                    $q2->where('name', 'like', "%{$search}%");
+                })
+                ->orWhereHas('items.product', function($q2) use ($search) {
+                    $q2->where('title', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        // Filtro por estado
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filtro por fecha
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // Filtro por monto
+        if ($request->filled('min_total')) {
+            $query->where('total', '>=', $request->min_total);
+        }
+        if ($request->filled('max_total')) {
+            $query->where('total', '<=', $request->max_total);
+        }
+
+        $orders = $query->latest()->paginate(10)->appends($request->except('page'));
+
+        return Inertia::render('Orders/Index', [
+            'orders'  => $orders,
+            'filters' => $request->only(['search', 'status', 'date_from', 'date_to', 'min_total', 'max_total']),
+        ]);
     }
 
     // Actualizar estado del pedido (para el artesano)
@@ -104,17 +142,13 @@ class OrderController extends Controller
 
         return back()->with('status', 'Estado del pedido actualizado.');
     }
-
 public function invoice(Order $order)
 {
     if ($order->user_id !== Auth::id() && !Auth::user()->hasRole('admin')) {
         abort(403);
     }
 
-    $order->load('items.product', 'shop', 'taxData', 'buyer');
-
-    // Limpiar cualquier salida previa
-    if (ob_get_length()) ob_end_clean();
+    $order->load('items.product', 'shop', 'taxData', 'address', 'buyer');
 
     $pdf = Pdf::loadView('pdf.invoice', compact('order'));
 
