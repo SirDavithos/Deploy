@@ -15,8 +15,10 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $query = Product::with(['shop', 'category', 'artisan'])
+            ->withCount('reviews')
             ->where('status', 'published');
 
+        // Filtro por búsqueda textual
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
@@ -25,17 +27,49 @@ class ProductController extends Controller
             });
         }
 
+        // Filtro por categoría
         if ($request->filled('category')) {
             $query->whereHas('category', function ($q) use ($request) {
                 $q->where('slug', $request->input('category'));
             });
         }
 
-        $products = $query->latest()->paginate(12)->appends($request->except('page'));
+        // Filtro por rango de precio
+        if ($request->filled('price_min')) {
+            $query->where('price', '>=', $request->input('price_min'));
+        }
+        if ($request->filled('price_max')) {
+            $query->where('price', '<=', $request->input('price_max'));
+        }
+
+        // Ordenación
+        $sort = $request->input('sort', 'newest');
+        switch ($sort) {
+            case 'price_asc':
+                $query->orderBy('price', 'asc');
+                break;
+            case 'price_desc':
+                $query->orderBy('price', 'desc');
+                break;
+            case 'alpha_asc':
+                $query->orderBy('title', 'asc');
+                break;
+            case 'alpha_desc':
+                $query->orderBy('title', 'desc');
+                break;
+            case 'rating':
+                $query->withAvg('reviews', 'rating')->orderBy('reviews_avg_rating', 'desc');
+                break;
+            default:
+                $query->latest();
+                break;
+        }
+
+        $products = $query->paginate(12)->appends($request->except('page'));
 
         return Inertia::render('Products/Index', [
             'products'   => $products,
-            'filters'    => $request->only(['search', 'category']),
+            'filters'    => $request->only(['search', 'category', 'sort', 'price_min', 'price_max']),
             'categories' => Category::all(),
         ]);
     }
@@ -43,8 +77,23 @@ class ProductController extends Controller
     // Detalle de producto
     public function show(Product $product)
     {
-        $product->load('shop', 'category', 'artisan');
-        return Inertia::render('Products/Show', ['product' => $product]);
+        $product->load('shop', 'category', 'artisan', 'reviews.user');
+        $product->setAttribute('average_rating', $product->reviews->avg('rating') ?: 0);
+        $product->setAttribute('reviews_count', $product->reviews->count());
+
+        // Productos similares (misma categoría, excluyendo el actual)
+        $relatedProducts = Product::with('shop')
+            ->where('category_id', $product->category_id)
+            ->where('id', '!=', $product->id)
+            ->where('status', 'published')
+            ->take(4)
+            ->get();
+
+        return Inertia::render('Products/Show', [
+            'product' => $product,
+            'relatedProducts' => $relatedProducts,
+            'canReview' => $this->userCanReview($product), // método helper que verifica si el usuario puede opinar
+        ]);
     }
 
     // Formulario para crear producto (solo artesanos con tienda)
@@ -136,7 +185,7 @@ class ProductController extends Controller
             'status'        => 'required|in:published,draft,sold_out',
             'images'        => 'nullable|array',
             'images.*'      => 'image|max:2048',
-            'delete_images' => 'nullable|array', // índices de imágenes a eliminar
+            'delete_images' => 'nullable|array',
         ]);
 
         $currentImages = $product->images ?? [];
@@ -188,5 +237,18 @@ class ProductController extends Controller
 
         return redirect()->route('shop.show', $product->shop_id)
             ->with('status', 'Producto eliminado.');
+    }
+    private function userCanReview(Product $product): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+
+        // Verificar si el usuario ha comprado este producto y el pedido está entregado
+        return $user->orders()
+            ->whereHas('items', function ($q) use ($product) {
+                $q->where('product_id', $product->id);
+            })
+            ->whereIn('status', ['delivered'])
+            ->exists();
     }
 }

@@ -104,4 +104,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Order::class, 'user_id');
     }
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+    public function followedShops(): BelongsToMany
+    {
+        return $this->belongsToMany(Shop::class, 'shop_user');
+    }
 }

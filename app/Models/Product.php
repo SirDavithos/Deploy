@@ -27,7 +27,15 @@ class Product extends Model
         'price' => 'decimal:2',
     ];
 
-    // Relaciones
+    // Atributo calculado: promedio de reseñas
+    protected $appends = ['average_rating'];
+
+    public function getAverageRatingAttribute()
+    {
+        return $this->reviews()->avg('rating') ?: 0;
+    }
+
+    // ========== RELACIONES ==========
     public function shop()
     {
         return $this->belongsTo(Shop::class);
@@ -41,5 +49,15 @@ class Product extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
     }
 }

@@ -83,4 +83,5 @@ class ShopController extends Controller
         $pdf = Pdf::loadView('pdf.admin.shops', compact('shops'));
         return $pdf->download('tiendas.pdf');
     }
+
 }

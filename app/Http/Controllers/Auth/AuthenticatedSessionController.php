@@ -38,18 +38,8 @@ class AuthenticatedSessionController extends Controller
             'last_login_ip'  => $request->ip(),
         ]);
 
-        // Redirigir según rol (forzado, sin 'intended')
-        if ($user->hasRole('admin')) {
-            return redirect()->to(route('admin.users.index'));
-        } elseif ($user->hasRole('artisan')) {
-            if ($user->shop) {
-                return redirect()->to(route('shop.show', $user->shop->id));
-            } else {
-                return redirect()->to(route('shop.create'));
-            }
-        } else {
-            return redirect()->to(route('dashboard'));
-        }
+        // Redirigir a la página principal (Welcome) sin importar el rol
+        return redirect()->to('/');
     }
 
     /**

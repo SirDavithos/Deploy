@@ -114,7 +114,6 @@ class ShopController extends Controller
      */
     public function show(Shop $shop)
     {
-        // El dueño o el admin pueden ver
         if ($shop->user_id !== Auth::id() && !Auth::user()->hasRole('admin')) {
             abort(403);
         }
@@ -122,7 +121,7 @@ class ShopController extends Controller
         $shop->load('phones', 'addresses', 'owner', 'products', 'orders.items.product', 'orders.buyer', 'orders.taxData');
 
         return Inertia::render('Shop/Show', [
-            'shop' => $shop,
+            'shop'    => $shop,
             'isAdmin' => Auth::user()->hasRole('admin'),
         ]);
     }
@@ -169,7 +168,68 @@ class ShopController extends Controller
     }
 
     /**
-     * (Opcional) Listado de tiendas para administración.
+     * Vista pública de la tienda (compradores).
+     */
+    public function view(Shop $shop)
+    {
+        $shop->load([
+            'owner',
+            'phones',
+            'products' => function ($query) {
+                $query->where('status', 'published')
+                    ->withAvg('reviews', 'rating')
+                    ->withCount('reviews')
+                    ->latest();
+            },
+            'products.reviews' => function ($query) {
+                $query->latest()->with('user');
+            },
+            'orders' => function ($query) {
+                $query->where('status', 'delivered');
+            },
+        ]);
+
+        // Calcular promedio y conteo general de la tienda
+        $allReviews = $shop->products->flatMap->reviews;
+        $shop->setAttribute('products_avg_rating', $allReviews->avg('rating') ?? 0);
+        $shop->setAttribute('products_reviews_count', $allReviews->count());
+        $shop->setAttribute('sales_count', $shop->orders->count());
+        $shop->setAttribute('all_reviews', $allReviews);
+
+        // Determinar si el usuario actual sigue esta tienda
+        $user = Auth::user();
+        $shop->setAttribute('is_followed_by_user', $user ? $user->followedShops()->where('shop_id', $shop->id)->exists() : false);
+
+        return Inertia::render('Shop/View', [
+            'shop' => $shop,
+        ]);
+    }
+
+    /**
+     * Seguir / dejar de seguir una tienda.
+     */
+    public function toggleFollow(Request $request, Shop $shop)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'No autenticado'], 401);
+        }
+
+        $isFollowing = $user->followedShops()->where('shop_id', $shop->id)->exists();
+
+        if ($isFollowing) {
+            $user->followedShops()->detach($shop->id);
+            $newState = false;
+        } else {
+            $user->followedShops()->attach($shop->id);
+            $newState = true;
+        }
+
+        return back()->with('status', $newState ? 'Siguiendo tienda' : 'Dejaste de seguir');
+    }
+
+    /**
+     * Listado de tiendas para administración.
      */
     public function index()
     {

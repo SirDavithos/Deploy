@@ -8,8 +8,8 @@ const props = defineProps({
     addresses: Array,
     taxData: Array,
     orders: Array,
-    roles: Array,          // slugs de los roles del usuario
-    userShop: Object|null, // tienda del usuario si es artesano
+    roles: Array,
+    userShop: Object|null,
 });
 
 // --- CONTROL DE PESTAÑAS ---
@@ -159,8 +159,6 @@ const updateProfile = () => {
         onSuccess: () => profileForm.reset('avatar'),
     });
 };
-
-const safeRoute = (name) => { try { return route(name); } catch (e) { return '#'; } };
 </script>
 
 <template>
@@ -170,7 +168,7 @@ const safeRoute = (name) => { try { return route(name); } catch (e) { return '#'
         <nav class="border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900 sticky top-0 z-50 shadow-sm">
             <div class="mx-auto flex max-w-7xl items-center justify-between">
                 <div class="flex items-center space-x-6">
-                    <Link :href="safeRoute('welcome')" class="flex items-center space-x-2">
+                    <Link :href="route('home')" class="flex items-center space-x-2">
                         <span class="text-2xl font-black tracking-wider text-red-600 dark:text-red-500">PUNTO</span>
                         <span class="bg-red-600 px-2 py-0.5 text-sm font-bold text-white rounded dark:bg-red-500">BOLIVIANO</span>
                     </Link>
@@ -196,7 +194,7 @@ const safeRoute = (name) => { try { return route(name); } catch (e) { return '#'
                     <span class="text-sm font-medium text-gray-600 dark:text-gray-400">
                         Hola, <strong class="text-gray-900 dark:text-white">{{ user.first_name }}</strong>
                     </span>
-                    <Link :href="safeRoute('logout')" method="post" as="button" class="text-xs font-semibold text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400">
+                    <Link :href="route('logout')" method="post" as="button" class="text-xs font-semibold text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400">
                         Cerrar Sesión
                     </Link>
                 </div>
@@ -272,8 +270,9 @@ const safeRoute = (name) => { try { return route(name); } catch (e) { return '#'
                                                 'badge-pending': order.status === 'pending',
                                                 'badge-success': order.status === 'delivered' || order.status === 'confirmed',
                                             }">{{ order.status }}</span>
-                                            <!-- Enlace de factura desactivado hasta tener la ruta -->
-                                            <Link v-if="order.tax_data" :href="route('orders.invoice', order.id)" class="text-xs text-blue-600 hover:underline ml-2">📄 Factura</Link>                                        </div>
+                                            <!-- Enlace de factura -->
+                                            <Link v-if="order.tax_data" :href="route('orders.invoice', order.id)" class="text-xs text-blue-600 hover:underline ml-2">📄 Factura</Link>
+                                        </div>
                                     </div>
                                 </div>
                                 <div v-else class="p-6 text-center text-gray-400 text-sm">

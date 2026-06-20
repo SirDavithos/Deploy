@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ShopController as AdminShopController;
 use App\Http\Controllers\Admin\PhoneController as AdminPhoneController;
@@ -25,25 +26,52 @@ use Inertia\Inertia;
 |--------------------------------------------------------------------------
 */
 
-// Página de inicio con categorías y productos destacados reales
+// Página de inicio con categorías y múltiples secciones de productos
 Route::get('/', function () {
+    $user = auth()->user();
+
     return Inertia::render('Welcome', [
-        'canLogin'        => Route::has('login'),
-        'canRegister'     => Route::has('register'),
-        'laravelVersion'  => Application::VERSION,
-        'phpVersion'      => PHP_VERSION,
-        'categories'      => \App\Models\Category::withCount('products')->get(),
-        'featuredProducts'=> \App\Models\Product::with(['shop', 'artisan'])
+        'canLogin'         => Route::has('login'),
+        'canRegister'      => Route::has('register'),
+        'laravelVersion'   => Application::VERSION,
+        'phpVersion'       => PHP_VERSION,
+        'categories'       => \App\Models\Category::withCount('products')->get(),
+        // Productos destacados (los más recientes)
+        'featuredProducts' => \App\Models\Product::with(['shop', 'artisan'])
             ->where('status', 'published')
             ->latest()
             ->take(4)
             ->get(),
+        // Más vendidos (por cantidad de pedidos)
+        'bestSellers'      => \App\Models\Product::with(['shop', 'artisan'])
+            ->where('status', 'published')
+            ->withCount('orderItems')
+            ->orderBy('order_items_count', 'desc')
+            ->take(4)
+            ->get(),
+        // Mejor valorados (por promedio de reseñas)
+        'topRated'         => \App\Models\Product::with(['shop', 'artisan'])
+            ->where('status', 'published')
+            ->withAvg('reviews', 'rating')
+            ->orderBy('reviews_avg_rating', 'desc')
+            ->take(4)
+            ->get(),
+        // Recién llegados (los últimos 4 publicados)
+        'newArrivals'      => \App\Models\Product::with(['shop', 'artisan'])
+            ->where('status', 'published')
+            ->latest()
+            ->take(4)
+            ->get(),
+        // Datos del usuario autenticado (si existe) – aún se pasan por si los necesita alguna parte
+        'authUserRoles'    => $user ? $user->roles()->pluck('slug') : [],
+        'authUserShop'     => $user ? $user->shop : null,
     ]);
-});
+})->name('home');
 
 // Mercado público (sin necesidad de autenticación)
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
+Route::get('/tienda/{shop:slug}', [ShopController::class, 'view'])->name('shop.view');
 
 /*
 |--------------------------------------------------------------------------
@@ -59,8 +87,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/shop/create', [ShopController::class, 'create'])->name('shop.create');
     Route::post('/shop', [ShopController::class, 'store'])->name('shop.store');
     Route::get('/shop/{shop}', [ShopController::class, 'show'])->name('shop.show');
-    Route::patch('/shop/{shop}', [ShopController::class, 'update'])->name('shop.update');
-
+    Route::match(['patch', 'post'], '/shop/{shop}', [ShopController::class, 'update'])->name('shop.update');
     // Productos (gestión)
     Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
     Route::post('/products', [ProductController::class, 'store'])->name('products.store');
@@ -108,6 +135,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('/orders/{order}/invoice', [OrderController::class, 'invoice'])->name('orders.invoice');
+
+    Route::post('/products/{product}/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+
+    Route::post('/tienda/{shop}/follow', [ShopController::class, 'toggleFollow'])->name('shop.follow');
 });
 
 /*
@@ -138,7 +170,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::patch('/users/tax-data/{taxData}', [AdminTaxDataController::class, 'update'])->name('users.tax-data.update');
     Route::delete('/users/tax-data/{taxData}', [AdminTaxDataController::class, 'destroy'])->name('users.tax-data.destroy');
 
-    // Tiendas (rutas fijas antes que el comodín)
+    // Tiendas
     Route::get('/shops', [AdminShopController::class, 'index'])->name('shops.index');
     Route::get('/shops/export-pdf', [AdminShopController::class, 'exportPdf'])->name('shops.export-pdf');
     Route::patch('/shops/{shop}/approve', [AdminShopController::class, 'approve'])->name('shops.approve');
@@ -147,13 +179,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Pedidos
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
-    Route::get('/orders/export-pdf', [AdminOrderController::class, 'exportPdf'])->name('orders.export-pdf'); // ← nueva
+    Route::get('/orders/export-pdf', [AdminOrderController::class, 'exportPdf'])->name('orders.export-pdf');
     Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
-
-    // Pedidos
-    Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
-    Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
-
     Route::patch('/orders/{order}', [AdminOrderController::class, 'update'])->name('orders.update');
     Route::delete('/orders/{order}', [AdminOrderController::class, 'destroy'])->name('orders.destroy');
 });

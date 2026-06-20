@@ -50,8 +50,11 @@ class Shop extends Model
         return $this->hasMany(ShopAddress::class);
     }
     public function orders()
-{
-    return $this->hasMany(Order::class);
-}
-
+    {
+        return $this->hasMany(Order::class);
+    }
+    public function followers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'shop_user');
+    }
 }

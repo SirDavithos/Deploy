@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class SampleDataSeeder extends Seeder
 {
@@ -16,7 +17,13 @@ class SampleDataSeeder extends Seeder
         DB::table('user_phones')->truncate();
         DB::table('user_addresses')->truncate();
         DB::table('user_tax_data')->truncate();
+        DB::table('reviews')->truncate();
+        DB::table('order_items')->truncate();
+        DB::table('orders')->truncate();
+        DB::table('carts')->truncate();
         DB::table('products')->truncate();
+        DB::table('shop_phones')->truncate();
+        DB::table('shop_addresses')->truncate();
         DB::table('shops')->truncate();
         DB::table('categories')->truncate();
         DB::table('users')->truncate();
@@ -35,20 +42,25 @@ class SampleDataSeeder extends Seeder
         DB::table('roles')->insert($roles);
         $roleIds = DB::table('roles')->pluck('id', 'slug');
 
-        // 2. Categorías (5 categorías)
+        // 2. Categorías (10 categorías)
         $categories = [
             ['name' => 'Textiles y Aguayos', 'slug' => 'textiles-aguayos'],
             ['name' => 'Joyería en Plata',   'slug' => 'joyeria-plata'],
             ['name' => 'Cerámica y Arte',    'slug' => 'ceramica-arte'],
             ['name' => 'Cuero Artesanal',    'slug' => 'cuero-artesanal'],
             ['name' => 'Tallados en Madera', 'slug' => 'tallados-madera'],
+            ['name' => 'Velas y Aromas',     'slug' => 'velas-aromas'],
+            ['name' => 'Manualidades',       'slug' => 'manualidades'],
+            ['name' => 'Pinturas y Lienzos', 'slug' => 'pinturas-lienzos'],
+            ['name' => 'Instrumentos Nativos','slug' => 'instrumentos-nativos'],
+            ['name' => 'Bordados y Tejidos', 'slug' => 'bordados-tejidos'],
         ];
         foreach ($categories as &$cat) {
             $cat['created_at'] = $now;
             $cat['updated_at'] = $now;
         }
         DB::table('categories')->insert($categories);
-        $categoryIds = DB::table('categories')->pluck('id');
+        $categoryIds = DB::table('categories')->pluck('id', 'slug');
 
         // 3. Usuarios
         $admins = [
@@ -56,17 +68,18 @@ class SampleDataSeeder extends Seeder
             ['first_name' => 'Mónica', 'paternal_last_name' => 'Flores', 'maternal_last_name' => 'Apaza', 'ci_number' => '2345678', 'ci_extension' => 'LP', 'birth_date' => '1990-07-22', 'email' => 'monica.flores@admin.pb.bo'],
         ];
 
+        // Vendedores especializados cada uno en una categoría
         $vendedores = [
-            ['first_name' => 'Juana',   'paternal_last_name' => 'Condori',  'maternal_last_name' => 'Ticona',   'ci_number' => '3456789', 'ci_extension' => 'LP', 'birth_date' => '1980-11-02', 'email' => 'juana.condori@email.com'],
-            ['first_name' => 'Pedro',   'paternal_last_name' => 'Mamani',   'maternal_last_name' => 'López',    'ci_number' => '4567890', 'ci_extension' => 'LP', 'birth_date' => '1978-05-17', 'email' => 'pedro.mamani@email.com'],
-            ['first_name' => 'Sonia',   'paternal_last_name' => 'Huanaco',  'maternal_last_name' => 'Quisbert', 'ci_number' => '5678901', 'ci_extension' => 'LP', 'birth_date' => '1992-09-09', 'email' => 'sonia.huanaco@email.com'],
-            ['first_name' => 'Rolando', 'paternal_last_name' => 'Ticona',   'maternal_last_name' => 'Luna',     'ci_number' => '6789012', 'ci_extension' => 'LP', 'birth_date' => '1988-12-01', 'email' => 'rolando.ticona@email.com'],
-            ['first_name' => 'Elena',   'paternal_last_name' => 'Vargas',   'maternal_last_name' => 'Gonzales', 'ci_number' => '7890123', 'ci_extension' => 'LP', 'birth_date' => '1983-06-25', 'email' => 'elena.vargas@email.com'],
-            ['first_name' => 'Luis',    'paternal_last_name' => 'Paredes',  'maternal_last_name' => 'Flores',   'ci_number' => '8901234', 'ci_extension' => 'LP', 'birth_date' => '1975-02-14', 'email' => 'luis.paredes@email.com'],
-            ['first_name' => 'Ana',     'paternal_last_name' => 'Gutiérrez','maternal_last_name' => 'Castro',   'ci_number' => '9012345', 'ci_extension' => 'LP', 'birth_date' => '1995-04-30', 'email' => 'ana.gutierrez@email.com'],
-            ['first_name' => 'Jorge',   'paternal_last_name' => 'Apaza',    'maternal_last_name' => 'Valdivia', 'ci_number' => '1123456', 'ci_extension' => 'LP', 'birth_date' => '1987-08-12', 'email' => 'jorge.apaza@email.com'],
-            ['first_name' => 'Carmen',  'paternal_last_name' => 'Laura',    'maternal_last_name' => 'Vino',     'ci_number' => '2123457', 'ci_extension' => 'LP', 'birth_date' => '1991-01-05', 'email' => 'carmen.laura@email.com'],
-            ['first_name' => 'Oscar',   'paternal_last_name' => 'Mendoza',  'maternal_last_name' => 'León',     'ci_number' => '3123458', 'ci_extension' => 'LP', 'birth_date' => '1984-10-18', 'email' => 'oscar.mendoza@email.com'],
+            ['first_name' => 'Juana',   'paternal_last_name' => 'Condori',  'maternal_last_name' => 'Ticona',   'ci_number' => '3456789', 'ci_extension' => 'LP', 'birth_date' => '1980-11-02', 'email' => 'juana.condori@email.com', 'cat_slug' => 'textiles-aguayos'],
+            ['first_name' => 'Pedro',   'paternal_last_name' => 'Mamani',   'maternal_last_name' => 'López',    'ci_number' => '4567890', 'ci_extension' => 'LP', 'birth_date' => '1978-05-17', 'email' => 'pedro.mamani@email.com', 'cat_slug' => 'joyeria-plata'],
+            ['first_name' => 'Sonia',   'paternal_last_name' => 'Huanaco',  'maternal_last_name' => 'Quisbert', 'ci_number' => '5678901', 'ci_extension' => 'LP', 'birth_date' => '1992-09-09', 'email' => 'sonia.huanaco@email.com', 'cat_slug' => 'ceramica-arte'],
+            ['first_name' => 'Rolando', 'paternal_last_name' => 'Ticona',   'maternal_last_name' => 'Luna',     'ci_number' => '6789012', 'ci_extension' => 'LP', 'birth_date' => '1988-12-01', 'email' => 'rolando.ticona@email.com', 'cat_slug' => 'cuero-artesanal'],
+            ['first_name' => 'Elena',   'paternal_last_name' => 'Vargas',   'maternal_last_name' => 'Gonzales', 'ci_number' => '7890123', 'ci_extension' => 'LP', 'birth_date' => '1983-06-25', 'email' => 'elena.vargas@email.com', 'cat_slug' => 'tallados-madera'],
+            ['first_name' => 'Luis',    'paternal_last_name' => 'Paredes',  'maternal_last_name' => 'Flores',   'ci_number' => '8901234', 'ci_extension' => 'LP', 'birth_date' => '1975-02-14', 'email' => 'luis.paredes@email.com', 'cat_slug' => 'velas-aromas'],
+            ['first_name' => 'Ana',     'paternal_last_name' => 'Gutiérrez','maternal_last_name' => 'Castro',   'ci_number' => '9012345', 'ci_extension' => 'LP', 'birth_date' => '1995-04-30', 'email' => 'ana.gutierrez@email.com', 'cat_slug' => 'manualidades'],
+            ['first_name' => 'Jorge',   'paternal_last_name' => 'Apaza',    'maternal_last_name' => 'Valdivia', 'ci_number' => '1123456', 'ci_extension' => 'LP', 'birth_date' => '1987-08-12', 'email' => 'jorge.apaza@email.com', 'cat_slug' => 'pinturas-lienzos'],
+            ['first_name' => 'Carmen',  'paternal_last_name' => 'Laura',    'maternal_last_name' => 'Vino',     'ci_number' => '2123457', 'ci_extension' => 'LP', 'birth_date' => '1991-01-05', 'email' => 'carmen.laura@email.com', 'cat_slug' => 'instrumentos-nativos'],
+            ['first_name' => 'Oscar',   'paternal_last_name' => 'Mendoza',  'maternal_last_name' => 'León',     'ci_number' => '3123458', 'ci_extension' => 'LP', 'birth_date' => '1984-10-18', 'email' => 'oscar.mendoza@email.com', 'cat_slug' => 'bordados-tejidos'],
         ];
 
         $compradores = [
@@ -89,11 +102,18 @@ class SampleDataSeeder extends Seeder
         ];
 
         $userId = 1;
+        $customerIds = [];
+        $approvedShopIds = [];
         $phoneData = [];
         $addressData = [];
         $taxData = [];
         $shopData = [];
         $productData = [];
+        $shopPhoneData = [];
+        $shopAddressData = [];
+        $reviewData = [];
+        $orderData = [];
+        $orderItemData = [];
 
         $zonas = ['Sopocachi', 'Miraflores', 'Centro', 'San Miguel', 'Obrajes', 'Calacoto', 'Villa Fátima', 'El Alto'];
         $calles = [
@@ -102,36 +122,92 @@ class SampleDataSeeder extends Seeder
             'Calle Potosí', 'Calle Loayza', 'Av. Villazón'
         ];
 
-        // Estados de tiendas para variar
         $shopStatuses = ['pending', 'approved', 'approved', 'approved', 'rejected', 'pending', 'approved', 'approved', 'rejected', 'pending'];
 
-        // Nombres de tiendas sugeridos (uno por artesano)
-        $shopNames = [
-            'Artesanías Condori',
-            'Mamani Tejidos',
-            'Huanaco Platería',
-            'Taller Ticona',
-            'Elena Bordados',
-            'Paredes Cuero',
-            'Ana Cerámicas',
-            'Apaza Maderas',
-            'Carmen Arte Textil',
-            'Mendoza Instrumentos',
-        ];
-
-        // Datos para productos (10 por tienda)
+        // Productos por categoría (15 títulos sugeridos)
         $productTitles = [
-            'Textiles y Aguayos' => ['Aguayo tradicional', 'Chompa de alpaca', 'Bufanda tejida', 'Poncho andino', 'Falda bordada', 'Manta de vicuña', 'Gorro chullo', 'Tapiz decorativo', 'Camino de mesa', 'Cojín artesanal'],
-            'Joyería en Plata'   => ['Anillo de plata 950', 'Collar de filigrana', 'Aretes andinos', 'Pulsera trenzada', 'Dije de luna', 'Prendedor de alpaca', 'Rosario de plata', 'Tumi decorativo', 'Colgante de sol', 'Gargantilla paceña'],
-            'Cerámica y Arte'    => ['Jarrón ceremonial', 'Taza pintada a mano', 'Plato decorativo', 'Vasija de barro', 'Máscara de danza', 'Escultura pequeña', 'Cazuela rústica', 'Alcancía creativa', 'Plato hondo', 'Candelabro de arcilla'],
-            'Cuero Artesanal'    => ['Billetera de cuero', 'Monedero', 'Llavero grabado', 'Correa trenzada', 'Porta celular', 'Funda para cuchillo', 'Bandolera pequeña', 'Pulsera de cuero', 'Posavasos', 'Tarjetero'],
-            'Tallados en Madera' => ['Máscara tallada', 'Caja decorativa', 'Cuchara de palo', 'Colgante de madera', 'Figura de animal', 'Crucifijo artesanal', 'Portalápices', 'Tabla para picar', 'Rosetón tallado', 'Adorno de puerta'],
+            'textiles-aguayos' => ['Aguayo tradicional', 'Chompa de alpaca', 'Bufanda tejida', 'Poncho andino', 'Falda bordada', 'Manta de vicuña', 'Gorro chullo', 'Tapiz decorativo', 'Camino de mesa', 'Cojín artesanal', 'Capa tejida', 'Chalina', 'Frazada', 'Bolsa de tela', 'Individual'],
+            'joyeria-plata'   => ['Anillo de plata 950', 'Collar de filigrana', 'Aretes andinos', 'Pulsera trenzada', 'Dije de luna', 'Prendedor de alpaca', 'Rosario de plata', 'Tumi decorativo', 'Colgante de sol', 'Gargantilla paceña', 'Pulsera de eslabones', 'Aro c/moneda', 'Collar de cuentas', 'Anillo ajustable', 'Pendientes'],
+            'ceramica-arte'    => ['Jarrón ceremonial', 'Taza pintada a mano', 'Plato decorativo', 'Vasija de barro', 'Máscara de danza', 'Escultura pequeña', 'Cazuela rústica', 'Alcancía creativa', 'Plato hondo', 'Candelabro de arcilla', 'Figura de llama', 'Maceta pintada', 'Cenicero', 'Tetera artesanal', 'Juego de posavasos'],
+            'cuero-artesanal'  => ['Billetera de cuero', 'Monedero', 'Llavero grabado', 'Correa trenzada', 'Porta celular', 'Funda para cuchillo', 'Bandolera pequeña', 'Pulsera de cuero', 'Posavasos', 'Tarjetero', 'Cartuchera', 'Funda para tablet', 'Morral', 'Riñonera', 'Cinturón ancho'],
+            'tallados-madera'  => ['Máscara tallada', 'Caja decorativa', 'Cuchara de palo', 'Colgante de madera', 'Figura de animal', 'Crucifijo artesanal', 'Portalápices', 'Tabla para picar', 'Rosetón tallado', 'Adorno de puerta', 'Letrero de madera', 'Juego de ajedrez', 'Porta retrato', 'Candelabro rústico', 'Flauta'],
+            'velas-aromas'     => ['Vela aromática de soya', 'Difusor de varillas', 'Vela cónica decorativa', 'Sahumerio artesanal', 'Cera para masajes', 'Vela en tarro', 'Aromatizante en spray', 'Incienso natural', 'Vela flotante', 'Set de velas pequeñas', 'Vela de miel', 'Vela de citronela', 'Porta velas de barro', 'Cera perfumada', 'Vela de cumpleaños'],
+            'manualidades'     => ['Atrapasueños', 'Pulsera de hilo', 'Llavero de macramé', 'Porta macetas colgante', 'Figura de origami', 'Tarjeta pop-up', 'Caja de regalo decorada', 'Móvil para bebé', 'Imanes decorativos', 'Porta lápices de lata', 'Guirnalda de tela', 'Adorno navideño', 'Espejo con mosaico', 'Posa ollas', 'Separador de libros'],
+            'pinturas-lienzos' => ['Paisaje de La Paz', 'Retrato andino', 'Acuarela del Illimani', 'Cuadro de la calle Sagárnaga', 'Lienzo abstracto', 'Pintura de la virgen', 'Cuadro de la diablada', 'Miniatura enmarcada', 'Arte en técnica mixta', 'Impresión digital', 'Díptico de paisajes', 'Tríptico de flores', 'Cuadro de la morenada', 'Pintura de animales', 'Lámina artística'],
+            'instrumentos-nativos' => ['Zampoña', 'Charango pequeño', 'Quena de madera', 'Bombo andino', 'Palo de lluvia', 'Ocarina de cerámica', 'Chajchas (pezuñas)', 'Rondador', 'Pinkillo', 'Tarka', 'Guitarrilla', 'Maraca decorada', 'Tamboril', 'Sonajero', 'Pututu'],
+            'bordados-tejidos' => ['Mantel bordado', 'Servilleta decorada', 'Cojín con diseño', 'Tapete de mesa', 'Bordado enmarcado', 'Pañuelo personalizado', 'Camino de altar', 'Bolsa bordada', 'Vestido típico', 'Cartera tejida', 'Sombrero con cinta', 'Guantes tejidos', 'Calcetines de lana', 'Gorro con pompón', 'Bufanda infinita'],
         ];
 
+        // Precios realistas por categoría (rango)
+        $priceRanges = [
+            'textiles-aguayos' => [50, 350],
+            'joyeria-plata' => [80, 400],
+            'ceramica-arte' => [30, 250],
+            'cuero-artesanal' => [25, 200],
+            'tallados-madera' => [40, 300],
+            'velas-aromas' => [15, 100],
+            'manualidades' => [20, 150],
+            'pinturas-lienzos' => [100, 800],
+            'instrumentos-nativos' => [50, 500],
+            'bordados-tejidos' => [40, 300],
+        ];
+
+        // Comentarios para reseñas (muchos más variados)
+        $positiveComments = [
+            'Excelente calidad, muy recomendado.',
+            'Hermoso trabajo artesanal.',
+            'Me encantó, igual a la foto.',
+            'Superó mis expectativas.',
+            'Muy buen acabado y material.',
+            'Precio justo para la calidad.',
+            'Llegó rápido y en perfecto estado.',
+            'Los detalles son increíbles.',
+            'Volveré a comprar sin duda.',
+            'Perfecto para regalo.',
+            'La textura y colores son hermosos.',
+            'Artesanía de primera.',
+            'Muy bien empaquetado.',
+            'El diseño es auténtico.',
+            '100% recomendable.',
+        ];
+        $neutralComments = [
+            'Buen producto, aunque el color no era exactamente como esperaba.',
+            'Correcto, pero tardó un poco en llegar.',
+            'Está bien por el precio.',
+            'Cumple con lo prometido.',
+            'Aceptable, aunque podría mejorar el empaque.',
+            'Es bonito, pero más pequeño de lo que pensé.',
+            'Calidad media, nada fuera de lo común.',
+            'Bien, aunque esperaba más por el precio.',
+            'Funciona, pero el material se siente frágil.',
+            'Regular, no sé si volvería a comprar.',
+            'El diseño es lindo, pero los acabados no tanto.',
+            'Lo conservo, aunque no fue exactamente lo que esperaba.',
+        ];
+        $negativeComments = [
+            'No me gustó, esperaba algo de mejor calidad.',
+            'El producto llegó dañado.',
+            'No coincide con la descripción.',
+            'Muy caro para lo que es.',
+            'No lo recomiendo.',
+            'El material se ve barato.',
+            'Tardó muchísimo en llegar.',
+            'Lo devolví porque no me sirvió.',
+            'Los colores se ven distintos a la foto.',
+            'Decepcionante, no cumple.',
+            'Se rompió a los pocos días.',
+            'Mal empaque, llegó golpeado.',
+        ];
+
+        // ==================== CREAR USUARIOS, TIENDAS Y PRODUCTOS ====================
         foreach ($allUsers as $roleGroup) {
             $roleSlug = $roleGroup['role'];
             $roleId = $roleIds[$roleSlug];
-            foreach ($roleGroup['data'] as $index => $userData) {
+            foreach ($roleGroup['data'] as $userData) {
+                // Guardar cat_slug antes de eliminarlo
+                $catSlug = $userData['cat_slug'] ?? null;
+                unset($userData['cat_slug']);
+
                 DB::table('users')->insert(array_merge($userData, [
                     'password'          => $passwordHash,
                     'status'            => 'active',
@@ -151,22 +227,18 @@ class SampleDataSeeder extends Seeder
                     'updated_at' => $now,
                 ]);
 
-                // Teléfonos
-                $phoneData[] = [
-                    'user_id'      => $userId,
-                    'phone_number' => '7' . rand(1000000, 9999999),
-                    'type'         => 'Principal (WhatsApp)',
-                    'created_at'   => $now, 'updated_at' => $now,
-                ];
-                $phoneData[] = [
-                    'user_id'      => $userId,
-                    'phone_number' => '2' . rand(1000000, 9999999),
-                    'type'         => 'Fijo Domicilio',
-                    'created_at'   => $now, 'updated_at' => $now,
-                ];
+                // Guardar IDs de compradores para pedidos y reseñas
+                if ($roleSlug === 'customer') {
+                    $customerIds[] = $userId;
+                }
 
-                // Direcciones
-                for ($i = 0; $i < 2; $i++) {
+                // 3 Teléfonos por usuario
+                $phoneData[] = ['user_id' => $userId, 'phone_number' => '7' . rand(1000000, 9999999), 'type' => 'Principal (WhatsApp)', 'created_at' => $now, 'updated_at' => $now];
+                $phoneData[] = ['user_id' => $userId, 'phone_number' => '2' . rand(1000000, 9999999), 'type' => 'Fijo Domicilio', 'created_at' => $now, 'updated_at' => $now];
+                $phoneData[] = ['user_id' => $userId, 'phone_number' => '6' . rand(1000000, 9999999), 'type' => 'Trabajo', 'created_at' => $now, 'updated_at' => $now];
+
+                // 3 Direcciones por usuario
+                for ($i = 0; $i < 3; $i++) {
                     $zona = $zonas[array_rand($zonas)];
                     $calle = $calles[array_rand($calles)] . ' #' . rand(100, 9999);
                     $addressData[] = [
@@ -174,18 +246,18 @@ class SampleDataSeeder extends Seeder
                         'city'           => 'La Paz',
                         'zone'           => $zona,
                         'street_address' => $calle,
-                        'reference'      => ($i === 0) ? 'Cerca de la plaza principal' : 'Edificio blanco, piso ' . rand(1, 10),
+                        'reference'      => $i === 0 ? 'Cerca de la plaza' : 'Edificio blanco, piso ' . rand(1, 10),
+                        'is_default'     => $i === 0,
                         'latitude'       => round(-16.5 + (rand(-500, 500) / 10000), 8),
                         'longitude'      => round(-68.15 + (rand(-500, 500) / 10000), 8),
-                        'is_default'     => ($i === 0),
                         'created_at'     => $now,
                         'updated_at'     => $now,
                     ];
                 }
 
-                // Datos fiscales
-                $razon1 = ($roleSlug === 'artisan') ? 'Artesanías ' . $userData['paternal_last_name'] : $userData['first_name'] . ' ' . $userData['paternal_last_name'];
-                $razon2 = ($roleSlug === 'artisan') ? 'Taller ' . $userData['paternal_last_name'] : $userData['first_name'] . ' ' . $userData['paternal_last_name'];
+                // 2 Datos fiscales por usuario
+                $razon1 = $roleSlug === 'artisan' ? 'Artesanías ' . $userData['paternal_last_name'] : $userData['first_name'] . ' ' . $userData['paternal_last_name'];
+                $razon2 = $roleSlug === 'artisan' ? 'Taller ' . $userData['paternal_last_name'] : $userData['first_name'] . ' ' . $userData['paternal_last_name'];
                 $taxData[] = [
                     'user_id'       => $userId,
                     'nit_or_ci'     => $userData['ci_number'] . '001',
@@ -208,44 +280,63 @@ class SampleDataSeeder extends Seeder
                 ];
 
                 // Si es artesano, crear tienda y productos
-                if ($roleSlug === 'artisan') {
+                if ($roleSlug === 'artisan' && $catSlug) {
                     $status = $shopStatuses[count($shopData) % count($shopStatuses)];
-                    $shopName = $shopNames[count($shopData)];
-                    $slug = \Illuminate\Support\Str::slug($shopName) . '-' . $userId;
-                    $shopId = count($shopData) + 1; // IDs incrementales
+                    $shopName = str_replace('_', ' ', ucfirst($catSlug)) . ' ' . $userData['paternal_last_name'];
+                    $slug = Str::slug($shopName) . '-' . $userId;
+                    $shopId = count($shopData) + 1;
 
                     $shopData[] = [
                         'id'          => $shopId,
                         'user_id'     => $userId,
                         'name'        => $shopName,
                         'slug'        => $slug,
-                        'description' => 'Tienda de artesanías ' . $shopName,
+                        'description' => 'Tienda especializada en ' . DB::table('categories')->where('slug', $catSlug)->value('name'),
                         'status'      => $status,
                         'created_at'  => $now,
                         'updated_at'  => $now,
                     ];
 
-                    // Productos para esta tienda (10 productos)
-                    $catIds = $categoryIds->toArray();
-                    foreach ($catIds as $catIndex => $catId) {
-                        $catName = DB::table('categories')->where('id', $catId)->value('name');
-                        $titles = $productTitles[$catName] ?? ['Producto artesanal'];
-                        for ($j = 0; $j < 2; $j++) { // 2 productos por categoría = 10 productos
-                            $title = $titles[(($catIndex * 2) + $j) % count($titles)];
-                            $productData[] = [
-                                'shop_id'     => $shopId,
-                                'user_id'     => $userId,
-                                'category_id' => $catId,
-                                'title'       => $title,
-                                'description' => $title . ' elaborado a mano en La Paz, Bolivia.',
-                                'price'       => rand(30, 800) + (rand(0, 99) / 100),
-                                'stock'       => rand(1, 20),
-                                'status'      => 'published',
-                                'images'      => json_encode([]),
-                                'created_at'  => $now,
-                                'updated_at'  => $now,
-                            ];
-                        }
+                    if ($status === 'approved') {
+                        $approvedShopIds[] = $shopId;
+                    }
+
+                    // 2 Teléfonos para la tienda
+                    $shopPhoneData[] = ['shop_id' => $shopId, 'phone_number' => '7' . rand(1000000, 9999999), 'type' => 'Principal', 'created_at' => $now, 'updated_at' => $now];
+                    $shopPhoneData[] = ['shop_id' => $shopId, 'phone_number' => '2' . rand(1000000, 9999999), 'type' => 'Fijo', 'created_at' => $now, 'updated_at' => $now];
+
+                    // 1 Dirección para la tienda
+                    $zona = $zonas[array_rand($zonas)];
+                    $calle = $calles[array_rand($calles)] . ' #' . rand(100, 9999);
+                    $shopAddressData[] = [
+                        'shop_id'        => $shopId,
+                        'city'           => 'La Paz',
+                        'zone'           => $zona,
+                        'street_address' => $calle,
+                        'reference'      => 'Local ' . rand(1, 50),
+                        'is_default'     => true,
+                        'created_at'     => $now,
+                        'updated_at'     => $now,
+                    ];
+
+                    // 15 Productos por tienda, de su categoría
+                    $titles = $productTitles[$catSlug];
+                    $prices = $priceRanges[$catSlug];
+                    for ($p = 0; $p < 15; $p++) {
+                        $title = $titles[$p % count($titles)];
+                        $productData[] = [
+                            'shop_id'     => $shopId,
+                            'user_id'     => $userId,
+                            'category_id' => $categoryIds[$catSlug],
+                            'title'       => $title,
+                            'description' => $title . ' elaborado a mano en La Paz, Bolivia.',
+                            'price'       => rand($prices[0], $prices[1]) + (rand(0, 99) / 100),
+                            'stock'       => rand(1, 20),
+                            'status'      => 'published',
+                            'images'      => json_encode([]),
+                            'created_at'  => $now,
+                            'updated_at'  => $now,
+                        ];
                     }
                 }
 
@@ -253,12 +344,115 @@ class SampleDataSeeder extends Seeder
             }
         }
 
+        // Insertar todos los datos preparados
         DB::table('user_phones')->insert($phoneData);
         DB::table('user_addresses')->insert($addressData);
         DB::table('user_tax_data')->insert($taxData);
         DB::table('shops')->insert($shopData);
+        DB::table('shop_phones')->insert($shopPhoneData);
+        DB::table('shop_addresses')->insert($shopAddressData);
         DB::table('products')->insert($productData);
 
-        $this->command->info("✅ Seeder ejecutado: {$userId} usuarios, " . count($shopData) . " tiendas, " . count($productData) . " productos generados.");
+        // Obtener IDs de productos por tienda
+        $productIdsByShop = [];
+        foreach (DB::table('products')->get() as $prod) {
+            $productIdsByShop[$prod->shop_id][] = $prod->id;
+        }
+
+        // ==================== RESEÑAS (MUCHAS MÁS) ====================
+        // Para cada tienda aprobada, TODOS sus productos reciben reseñas de TODOS los compradores
+        foreach ($approvedShopIds as $shopId) {
+            $shopProductIds = $productIdsByShop[$shopId] ?? [];
+            if (empty($shopProductIds)) continue;
+
+            // Ahora TODOS los productos de esta tienda reciben reseñas
+            foreach ($shopProductIds as $productId) {
+                // Cada comprador deja una reseña en este producto
+                foreach ($customerIds as $custId) {
+                    $rating = rand(1, 5);
+                    if ($rating >= 4) {
+                        $comment = $positiveComments[array_rand($positiveComments)];
+                    } elseif ($rating >= 2) {
+                        $comment = $neutralComments[array_rand($neutralComments)];
+                    } else {
+                        $comment = $negativeComments[array_rand($negativeComments)];
+                    }
+                    $reviewData[] = [
+                        'product_id' => $productId,
+                        'user_id'    => $custId,
+                        'rating'     => $rating,
+                        'comment'    => $comment,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+            }
+        }
+        DB::table('reviews')->insert($reviewData);
+
+        // ==================== PEDIDOS ====================
+        $orderStatuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+        $orderId = 1;
+
+        foreach ($customerIds as $custId) {
+            // Obtener direcciones y taxData de este comprador
+            $custAddressIds = DB::table('user_addresses')->where('user_id', $custId)->pluck('id')->toArray();
+            $custTaxIds = DB::table('user_tax_data')->where('user_id', $custId)->pluck('id')->toArray();
+
+            for ($i = 0; $i < 10; $i++) {
+                $shopId = $approvedShopIds[array_rand($approvedShopIds)];
+                $shopProductIds = $productIdsByShop[$shopId] ?? [];
+                if (empty($shopProductIds)) continue;
+
+                // Elegir 1 o 2 productos
+                $numItems = rand(1, 2);
+                $orderProductIds = array_rand(array_flip($shopProductIds), $numItems);
+                if (!is_array($orderProductIds)) $orderProductIds = [$orderProductIds];
+
+                $total = 0;
+                $items = [];
+                foreach ($orderProductIds as $productId) {
+                    $product = DB::table('products')->where('id', $productId)->first();
+                    if (!$product) continue;
+                    $quantity = rand(1, 3);
+                    $itemTotal = $product->price * $quantity;
+                    $total += $itemTotal;
+                    $items[] = ['product_id' => $productId, 'price' => $product->price, 'quantity' => $quantity];
+                }
+                if (empty($items)) continue;
+
+                $status = $orderStatuses[array_rand($orderStatuses)];
+                $addressId = $custAddressIds[array_rand($custAddressIds)];
+                $taxDataId = $custTaxIds[array_rand($custTaxIds)];
+
+                $orderData[] = [
+                    'id'          => $orderId,
+                    'user_id'     => $custId,
+                    'shop_id'     => $shopId,
+                    'address_id'  => $addressId,
+                    'tax_data_id' => $taxDataId,
+                    'status'      => $status,
+                    'total'       => round($total, 2),
+                    'created_at'  => $now,
+                    'updated_at'  => $now,
+                ];
+
+                foreach ($items as $item) {
+                    $orderItemData[] = [
+                        'order_id'   => $orderId,
+                        'product_id' => $item['product_id'],
+                        'quantity'   => $item['quantity'],
+                        'price'      => $item['price'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                $orderId++;
+            }
+        }
+        DB::table('orders')->insert($orderData);
+        DB::table('order_items')->insert($orderItemData);
+
+        $this->command->info("Seeder ejecutado: " . ($userId-1) . " usuarios, " . count($shopData) . " tiendas, " . count($productData) . " productos, " . count($reviewData) . " reseñas, " . count($orderData) . " pedidos.");
     }
 }
