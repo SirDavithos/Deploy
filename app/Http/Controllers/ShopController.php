@@ -175,6 +175,7 @@ class ShopController extends Controller
         $shop->load([
             'owner',
             'phones',
+            'addresses',  // ← Necesario para la pestaña de información y GPS
             'products' => function ($query) {
                 $query->where('status', 'published')
                     ->withAvg('reviews', 'rating')

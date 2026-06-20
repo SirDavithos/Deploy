@@ -140,6 +140,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
 
     Route::post('/tienda/{shop}/follow', [ShopController::class, 'toggleFollow'])->name('shop.follow');
+    
 });
 
 /*

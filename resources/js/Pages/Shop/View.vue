@@ -10,7 +10,7 @@ const props = defineProps({
 });
 
 // ==================== PESTAÑAS ====================
-const activeTab = ref('products'); // 'products' | 'reviews'
+const activeTab = ref('products'); // 'products' | 'reviews' | 'info'
 
 // ==================== ESTADÍSTICAS ====================
 const shopRating = computed(() => {
@@ -88,6 +88,32 @@ const toggleFollow = () => {
         },
     });
 };
+
+// ==================== WHATSAPP / DIRECCIÓN ====================
+const primaryPhone = computed(() => props.shop.phones?.[0]?.phone_number || null);
+
+// Limpia el número para WhatsApp (elimina espacios, guiones, etc.)
+const waNumber = computed(() => {
+    const raw = primaryPhone.value;
+    if (!raw) return null;
+    const cleaned = raw.replace(/[\s\-\(\)\+]/g, '');
+    // Si el número empieza con '591' ya tiene código de país, si no asumimos Bolivia
+    const withCode = cleaned.startsWith('591') ? cleaned : '591' + cleaned;
+    return withCode;
+});
+
+const whatsappLink = computed(() => {
+    return `https://wa.me/${waNumber.value}`;
+});
+
+const primaryAddress = computed(() => props.shop.addresses?.[0] || null);
+const hasGps = computed(() => primaryAddress.value?.latitude && primaryAddress.value?.longitude);
+const staticMapUrl = computed(() => {
+    if (!hasGps.value) return null;
+    const lat = primaryAddress.value.latitude;
+    const lon = primaryAddress.value.longitude;
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.005},${lat-0.005},${lon+0.005},${lat+0.005}&layer=mapnik&marker=${lat},${lon}`;
+});
 </script>
 
 <template>
@@ -114,15 +140,18 @@ const toggleFollow = () => {
             <div class="pb-2 flex-1">
                 <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ shop.name }}</h1>
                 <p class="text-sm text-gray-600 dark:text-gray-400">Por: {{ shop.owner?.first_name }} {{ shop.owner?.paternal_last_name }}</p>
-                <div class="flex items-center gap-3 mt-1">
+                <div class="flex items-center gap-3 mt-1 flex-wrap">
                     <span v-if="totalReviews > 0" class="text-sm text-yellow-600">
                         ⭐ {{ shopRating }} ({{ totalReviews }} reseñas)
                     </span>
                     <span v-else class="text-xs text-gray-400">Sin reseñas aún</span>
                     <span class="text-xs text-gray-500">|</span>
                     <span class="text-xs text-gray-600">{{ totalSales }} ventas</span>
-                    <span v-if="shop.phones?.[0]" class="text-xs text-gray-500">|</span>
-                    <span v-if="shop.phones?.[0]" class="text-xs text-gray-600">📞 {{ shop.phones[0].phone_number }}</span>
+                    <!-- WhatsApp -->
+                    <span v-if="primaryPhone" class="text-xs text-gray-500">|</span>
+                    <a v-if="primaryPhone" :href="whatsappLink" target="_blank" class="text-xs text-green-600 font-bold hover:underline">
+                        💬 {{ primaryPhone }}
+                    </a>
                 </div>
             </div>
             <button @click="toggleFollow" class="btn-outline text-xs px-3 py-1.5" :class="{ 'bg-red-50 text-red-700 border-red-300': isFollowing }">
@@ -145,6 +174,11 @@ const toggleFollow = () => {
                 class="px-4 py-2 text-sm rounded-md transition-colors">
                 ⭐ Reseñas ({{ totalReviews }})
             </button>
+            <button @click="activeTab = 'info'"
+                :class="activeTab === 'info' ? 'tab-active' : 'tab-inactive'"
+                class="px-4 py-2 text-sm rounded-md transition-colors">
+                📍 Información
+            </button>
         </div>
 
         <!-- Contenido de pestañas -->
@@ -152,7 +186,6 @@ const toggleFollow = () => {
             <!-- PESTAÑA PRODUCTOS (con sidebar de filtros) -->
             <div v-if="activeTab === 'products'">
                 <div class="lg:grid lg:grid-cols-4 lg:gap-8">
-                    <!-- Sidebar de filtros (vertical) -->
                     <aside class="lg:col-span-1 mb-6 lg:mb-0">
                         <div class="card space-y-4">
                             <h3 class="text-sm font-bold text-gray-900 dark:text-white">Filtros</h3>
@@ -177,7 +210,6 @@ const toggleFollow = () => {
                         </div>
                     </aside>
 
-                    <!-- Grid de productos -->
                     <div class="lg:col-span-3">
                         <div v-if="filteredProducts.length > 0" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                             <Link v-for="product in filteredProducts" :key="product.id" :href="route('products.show', product.id)"
@@ -228,6 +260,34 @@ const toggleFollow = () => {
                     </div>
                 </div>
                 <p v-else class="text-sm text-gray-500">Esta tienda no tiene reseñas aún.</p>
+            </div>
+
+            <!-- PESTAÑA INFORMACIÓN (Dirección y GPS) -->
+            <div v-if="activeTab === 'info'" class="space-y-6">
+                <h3 class="section-title">📍 Ubicación</h3>
+                <div v-if="primaryAddress" class="space-y-2">
+                    <p class="text-sm">{{ primaryAddress.street_address }}</p>
+                    <p class="text-sm text-gray-500">{{ primaryAddress.zone }}, {{ primaryAddress.city }}</p>
+                    <p v-if="primaryAddress.reference" class="text-xs text-gray-400">Ref: {{ primaryAddress.reference }}</p>
+                    <div v-if="hasGps" class="text-xs text-gray-500">
+                        🛰️ {{ primaryAddress.latitude }}, {{ primaryAddress.longitude }}
+                    </div>
+                    <!-- Mapa estático (iframe) -->
+                    <div v-if="staticMapUrl" class="w-full h-64 rounded-lg overflow-hidden border dark:border-gray-700 mt-4">
+                        <iframe :src="staticMapUrl" width="100%" height="100%" frameborder="0" scrolling="no"></iframe>
+                    </div>
+                </div>
+                <div v-else class="text-sm text-gray-500">Esta tienda no ha registrado una dirección.</div>
+
+                <div class="border-t pt-4 mt-4">
+                    <h3 class="section-title mb-2">📞 Contacto</h3>
+                    <div v-if="primaryPhone">
+                        <a :href="whatsappLink" target="_blank" class="btn-whatsapp inline-flex items-center gap-2">
+                            💬 Enviar WhatsApp
+                        </a>
+                    </div>
+                    <p v-else class="text-sm text-gray-500">No hay teléfono de contacto.</p>
+                </div>
             </div>
         </div>
     </div>
