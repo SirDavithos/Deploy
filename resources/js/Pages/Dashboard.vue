@@ -167,7 +167,9 @@ const profileForm = useForm({
     avatar: null,
 });
 const updateProfile = () => {
-    profileForm.patch(route('profile.update'), {
+    profileForm.post(route('profile.update'), {
+        _method: 'PATCH',
+        forceFormData: true,   // necesario para archivos
         preserveScroll: true,
         onSuccess: () => profileForm.reset('avatar'),
     });

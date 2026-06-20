@@ -19,11 +19,12 @@ class UserAddressController extends Controller
             'street_address' => 'required|string|max:255',
             'reference'      => 'nullable|string|max:255',
             'is_default'     => 'boolean',
+            'latitude'       => 'nullable|numeric',   // ← nuevo
+            'longitude'      => 'nullable|numeric',   // ← nuevo
         ]);
 
         $validated['user_id'] = Auth::id();
 
-        // Si marca como predeterminada, quitar esa marca a las demás
         if ($request->boolean('is_default')) {
             Auth::user()->addresses()->update(['is_default' => false]);
         }
@@ -58,6 +59,8 @@ class UserAddressController extends Controller
             'street_address' => 'required|string|max:255',
             'reference'      => 'nullable|string|max:255',
             'is_default'     => 'boolean',
+            'latitude'       => 'nullable|numeric',   // ← nuevo
+            'longitude'      => 'nullable|numeric',   // ← nuevo
         ]);
 
         if ($request->boolean('is_default')) {
@@ -66,6 +69,6 @@ class UserAddressController extends Controller
 
         $address->update($validated);
 
-        return back()->with('status', 'Dirección actualizada.');
+        return back()->with('status', 'Dirección actualizada correctamente.');
     }
 }

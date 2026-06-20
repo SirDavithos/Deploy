@@ -5,7 +5,7 @@ import vue from '@vitejs/plugin-vue';
 export default defineConfig({
     plugins: [
         laravel({
-            input: 'resources/js/app.js',
+            input: ['resources/css/app.css', 'resources/js/app.js'],
             refresh: true,
         }),
         vue({
@@ -17,4 +17,10 @@ export default defineConfig({
             },
         }),
     ],
+    server: {
+        host: 'localhost', // Fuerza a usar localhost en lugar de [::1]
+        hmr: {
+            host: 'localhost', // Fuerza al HMR a usar localhost
+        },
+    },
 });

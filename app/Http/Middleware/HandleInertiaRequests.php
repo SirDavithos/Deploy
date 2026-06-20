@@ -34,7 +34,18 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => function () use ($request) {
                     if (! $request->user()) return null;
-                    return $request->user()->only('id', 'first_name', 'avatar');
+                    $user = $request->user();
+                    return [
+                        'id'                  => $user->id,
+                        'first_name'          => $user->first_name,
+                        'paternal_last_name'  => $user->paternal_last_name,
+                        'maternal_last_name'  => $user->maternal_last_name,
+                        'ci_number'           => $user->ci_number,
+                        'ci_extension'        => $user->ci_extension,
+                        'birth_date'          => optional($user->birth_date)->format('Y-m-d'), // ← esto lo soluciona
+                        'email'               => $user->email,
+                        'avatar'              => $user->avatar,
+                    ];
                 },
                 'userRoles' => function () use ($request) {
                     if (! $request->user()) return [];
